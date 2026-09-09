@@ -1,0 +1,38 @@
+## Build output
+bin/
+obj/
+
+## Visual Studio
+.vs/
+*.user
+*.userosscache
+*.suo
+*.userprefs
+
+## Rider / ReSharper
+.idea/
+*.sln.iml
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+## NuGet
+packages/
+*.nupkg
+*.snupkg
+
+## Test results
+TestResults/
+*.trx
+
+## Coverage
+coverage/
+*.coverage
+*.coveragexml
+
+## OS files
+.DS_Store
+Thumbs.db
+
+## Logs
+*.log
