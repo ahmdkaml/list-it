@@ -15,14 +15,12 @@
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <!-- Header -->
         <TextBlock Grid.Row="0"
                    Text="List-it"
                    FontSize="28"
                    FontWeight="SemiBold"
                    Margin="0,0,0,20"/>
 
-        <!-- Task input -->
         <Grid Grid.Row="1"
               Margin="0,0,0,20">
 
@@ -31,39 +29,46 @@
                 <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
 
-            <TextBox Grid.Column="0"
+            <TextBox x:Name="TaskInput"
+                     Grid.Column="0"
                      Height="36"
                      VerticalContentAlignment="Center"
-                     Padding="10,0"
-                     Text=""/>
+                     Padding="10,0"/>
 
             <Button Grid.Column="1"
                     Content="Add"
                     Width="70"
                     Height="36"
-                    Margin="8,0,0,0"/>
+                    Margin="8,0,0,0"
+                    Click="AddTask_Click"/>
         </Grid>
 
-        <!-- Task list -->
-        <ListBox Grid.Row="2">
-            <ListBoxItem>
-                <Grid>
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="*"/>
-                        <ColumnDefinition Width="Auto"/>
-                    </Grid.ColumnDefinitions>
+        <ListBox x:Name="TaskList"
+                 Grid.Row="2">
 
-                    <TextBlock Grid.Column="0"
-                               Text="Example task"
-                               VerticalAlignment="Center"/>
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="4">
 
-                    <Button Grid.Column="1"
-                            Content="×"
-                            Width="30"
-                            Height="30"
-                            Margin="8,0,0,0"/>
-                </Grid>
-            </ListBoxItem>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"/>
+                            <ColumnDefinition Width="Auto"/>
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding Title}"
+                                   VerticalAlignment="Center"/>
+
+                        <Button Grid.Column="1"
+                                Content="×"
+                                Width="30"
+                                Height="30"
+                                Margin="8,0,0,0"
+                                Click="DeleteTask_Click"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+
         </ListBox>
 
     </Grid>
