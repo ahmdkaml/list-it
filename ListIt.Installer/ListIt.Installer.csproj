@@ -1,0 +1,8 @@
+﻿<Project Sdk="WixToolset.Sdk/7.0.0">
+
+  <PropertyGroup>
+    <OutputType>Package</OutputType>
+    <OutputName>ListIt</OutputName>
+  </PropertyGroup>
+
+</Project>
