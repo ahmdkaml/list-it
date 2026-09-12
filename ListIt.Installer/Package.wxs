@@ -1,10 +1,28 @@
-<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
-
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
+  xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
   <Package
     Name="List-it"
     Manufacturer="List-it"
     Version="1.0.0"
     UpgradeCode="edcb382f-f182-43d2-b1bf-ba6f887bce02">
+
+    <SetProperty
+      Id="CreateListItTask"
+      Value="&quot;schtasks.exe&quot; /Create /TN &quot;List-it&quot; /TR &quot;\&quot;[INSTALLFOLDER]ListIt.exe\&quot;&quot; /SC ONLOGON /RU &quot;[LogonUser]&quot; /IT /RL LIMITED /F"
+      Before="CreateListItTask"
+      Sequence="execute" />
+
+    <CustomAction
+      Id="CreateListItTask"
+      BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+      DllEntry="WixQuietExec"
+      Execute="deferred"
+      Impersonate="no"
+      Return="check" />
+
+    <InstallExecuteSequence>
+      <Custom Action="CreateListItTask" After="InstallFiles" />
+    </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="List-it">
@@ -12,18 +30,6 @@
         <Files Include="$(var.PublishDir)\**">
           <Exclude Files="$(var.PublishDir)\*.pdb" />
         </Files>
-
-        <Component Id="WindowsStartup">
-
-          <RegistryValue
-            Root="HKLM"
-            Key="Software\Microsoft\Windows\CurrentVersion\Run"
-            Name="List-it"
-            Type="string"
-            Value="[INSTALLFOLDER]ListIt.exe"
-            KeyPath="yes" />
-
-        </Component>
 
       </Directory>
     </StandardDirectory>
