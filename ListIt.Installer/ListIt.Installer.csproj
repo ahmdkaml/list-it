@@ -1,15 +1,20 @@
-﻿<Project Sdk="WixToolset.Sdk/7.0.0">
+﻿<Project Sdk="WixToolset.Sdk/5.0.2">
 
   <PropertyGroup>
     <OutputType>Package</OutputType>
     <OutputName>ListIt</OutputName>
     <InstallerPlatform>x64</InstallerPlatform>
-    <PublishDir>$(MSBuildProjectDirectory)\..\ListIt\bin\Release\net10.0-windows\win-x64\publish</PublishDir>
-    <DefineConstants>PublishDir=$(PublishDir)</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WixToolset.Util.wixext" Version="7.0.0" />
+    <PackageReference Include="WixToolset.Util.wixext" Version="5.0.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Automatically publishes ListIt during MSI build -->
+    <ProjectReference Include="..\ListIt\ListIt.csproj"
+                      Publish="true"
+                      Properties="Configuration=Release;RuntimeIdentifier=win-x64;SelfContained=true" />
   </ItemGroup>
 
 </Project>

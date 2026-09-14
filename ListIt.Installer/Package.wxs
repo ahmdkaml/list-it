@@ -1,39 +1,56 @@
 <Wix xmlns="http://wixtoolset.org/schemas/v4/wxs"
-  xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
-  <Package
-    Name="List-it"
-    Manufacturer="List-it"
-    Version="1.0.0"
-    UpgradeCode="edcb382f-f182-43d2-b1bf-ba6f887bce02">
+     xmlns:util="http://wixtoolset.org/schemas/v4/wxs/util">
 
-    <SetProperty
-      Id="CreateListItTask"
-      Value="&quot;schtasks.exe&quot; /Create /TN &quot;List-it&quot; /TR &quot;\&quot;[INSTALLFOLDER]ListIt.exe\&quot;&quot; /SC ONLOGON /RU &quot;[LogonUser]&quot; /IT /RL LIMITED /F"
-      Before="CreateListItTask"
-      Sequence="execute" />
+  <Package Name="List-it"
+           Manufacturer="List-it"
+           Version="1.0.0"
+           UpgradeCode="edcb382f-f182-43d2-b1bf-ba6f887bce02">
 
-    <CustomAction
-      Id="CreateListItTask"
-      BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
-      DllEntry="WixQuietExec"
-      Execute="deferred"
-      Impersonate="no"
-      Return="check" />
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <!-- Create Scheduled Task on Install -->
+    <SetProperty Id="CreateListItTask"
+                 Value="&quot;schtasks.exe&quot; /Create /TN &quot;List-it&quot; /TR &quot;\&quot;[INSTALLFOLDER]ListIt.exe\&quot;&quot; /SC ONLOGON /RU &quot;[LogonUser]&quot; /IT /RL LIMITED /F"
+                 Before="CreateListItTask"
+                 Sequence="execute" />
+
+    <CustomAction Id="CreateListItTask"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
+    <!-- Remove Scheduled Task on Uninstall -->
+    <SetProperty Id="DeleteListItTask"
+                 Value="&quot;schtasks.exe&quot; /Delete /TN &quot;List-it&quot; /F"
+                 Before="DeleteListItTask"
+                 Sequence="execute" />
+
+    <CustomAction Id="DeleteListItTask"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
 
     <InstallExecuteSequence>
-      <Custom Action="CreateListItTask" After="InstallFiles" />
+      <!-- Execute task creation only on install/upgrade, after all files are flushed to disk -->
+      <Custom Action="CreateListItTask" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+      <!-- Delete scheduled task when uninstalling -->
+      <Custom Action="DeleteListItTask" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot;)" />
     </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="List-it">
 
-        <Files Include="$(var.PublishDir)\**">
-          <Exclude Files="$(var.PublishDir)\*.pdb" />
+        <!-- Bind directly to the referenced ListIt project output -->
+        <Files Include="!(bindpath.ListIt)\**">
+          <Exclude Files="!(bindpath.ListIt)\*.pdb" />
         </Files>
 
       </Directory>
     </StandardDirectory>
 
   </Package>
-
 </Wix>
