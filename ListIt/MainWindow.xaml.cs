@@ -1,41 +1,45 @@
-﻿using System.Collections.ObjectModel;
+﻿using System;
+using System.Runtime.InteropServices;
 using System.Windows;
+using System.Windows.Interop;
 
 namespace ListIt;
 
 public partial class MainWindow : Window
 {
-    private readonly ObservableCollection<Models.Task> _tasks = [];
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindow(string lpClassName, string? lpWindowName);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr FindWindowEx(IntPtr parentHandle, IntPtr childAfter, string className, string? windowTitle);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern IntPtr SetParent(IntPtr hWndChild, IntPtr hWndNewParent);
 
     public MainWindow()
     {
         InitializeComponent();
-
-        TaskList.ItemsSource = _tasks;
+        Loaded += MainWindow_Loaded;
     }
 
-    private void AddTask_Click(object sender, RoutedEventArgs e)
+    private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        var title = TaskInput.Text.Trim();
+        // Obtain handle to this window
+        var helper = new WindowInteropHelper(this);
+        IntPtr hWnd = helper.Handle;
 
-        if (string.IsNullOrWhiteSpace(title))
-            return;
+        // Locate the Progman window (desktop shell)
+        IntPtr progman = FindWindow("Progman", null);
+        IntPtr defView = FindWindowEx(progman, IntPtr.Zero, "SHELLDLL_DefView", null);
 
-        _tasks.Add(new Models.Task
+        if (defView != IntPtr.Zero)
         {
-            Title = title
-        });
-
-        TaskInput.Clear();
-        TaskInput.Focus();
-    }
-
-    private void DeleteTask_Click(object sender, RoutedEventArgs e)
-    {
-        if (sender is FrameworkElement element &&
-            element.DataContext is Models.Task task)
-        {
-            _tasks.Remove(task);
+            // Attach directly beneath desktop icons/wallpaper
+            SetParent(hWnd, progman);
         }
+
+        // Center on screen
+        Left = (SystemParameters.WorkArea.Width - Width) / 2;
+        Top = (SystemParameters.WorkArea.Height - Height) / 2;
     }
 }
