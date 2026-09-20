@@ -20,11 +20,11 @@ if ($Clean) {
     }
 }
 
-Write-Host "Publishing standalone single-file binary..." -ForegroundColor Green
+Write-Host "Publishing framework-dependent single-file binary..." -ForegroundColor Green
 dotnet publish "$projectPath" `
     -c $Configuration `
     -r win-x64 `
-    --self-contained `
+    --no-self-contained `
     -o "$publishDir"
 
 if ($LASTEXITCODE -ne 0) {

@@ -3,10 +3,20 @@
 
   <Package Name="List-it"
            Manufacturer="List-it"
-           Version="1.0.0"
+           Version="1.0.9"
            UpgradeCode="edcb382f-f182-43d2-b1bf-ba6f887bce02">
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+
+    <MediaTemplate EmbedCab="yes" />
+
+    <!-- Launch application via ShellExecute after install completes -->
+    <Property Id="WixShellExecTarget" Value="[#ListIt.exe]" />
+    <CustomAction Id="LaunchApplication"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixShellExec"
+                  Impersonate="yes"
+                  Return="ignore" />
 
     <!-- Create Scheduled Task on Install -->
     <SetProperty Id="CreateListItTask"
@@ -15,19 +25,6 @@
                  Sequence="execute" />
 
     <CustomAction Id="CreateListItTask"
-                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
-                  DllEntry="WixQuietExec"
-                  Execute="deferred"
-                  Impersonate="no"
-                  Return="ignore" />
-
-    <!-- Run Scheduled Task after Install -->
-    <SetProperty Id="RunListItTask"
-                 Value="&quot;schtasks.exe&quot; /Run /TN &quot;List-it&quot;"
-                 Before="RunListItTask"
-                 Sequence="execute" />
-
-    <CustomAction Id="RunListItTask"
                   BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
                   DllEntry="WixQuietExec"
                   Execute="deferred"
@@ -50,17 +47,19 @@
     <InstallExecuteSequence>
       <!-- Execute task creation only on install/upgrade, after all files are flushed to disk -->
       <Custom Action="CreateListItTask" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
-      <!-- Launch task immediately after creation on install/upgrade -->
-      <Custom Action="RunListItTask" After="CreateListItTask" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
       <!-- Delete scheduled task when uninstalling -->
       <Custom Action="DeleteListItTask" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot;)" />
+      <!-- Launch application after installation completes -->
+      <Custom Action="LaunchApplication" After="InstallFinalize" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
     </InstallExecuteSequence>
 
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="List-it">
 
         <!-- Bind directly to the referenced ListIt project output -->
+        <File Id="ListIt.exe" Source="!(bindpath.ListIt)\ListIt.exe" KeyPath="yes" />
         <Files Include="!(bindpath.ListIt)\**">
+          <Exclude Files="!(bindpath.ListIt)\ListIt.exe" />
           <Exclude Files="!(bindpath.ListIt)\*.pdb" />
         </Files>
 
