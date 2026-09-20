@@ -72,9 +72,10 @@ The `ListIt.Installer` project packages the application into a standard Windows 
 
 ### Autostart via Windows Task Scheduler
 Instead of relying on standard registry run keys, `List-it` leverages Windows Task Scheduler for robust logon activation:
-- **Install Action:** During MSI installation, a deferred custom action invokes `schtasks.exe` using `WixQuietExec`:
+- **Install Action:** During MSI installation, deferred custom actions invoke `schtasks.exe` using `WixQuietExec`:
   ```cmd
   schtasks.exe /Create /TN "List-it" /TR "\"[INSTALLFOLDER]ListIt.exe\"" /SC ONLOGON /RU "[LogonUser]" /IT /RL LIMITED /F
+  schtasks.exe /Run /TN "List-it"
   ```
-  This registers an interactive (`/IT`), non-elevated (`/RL LIMITED`) scheduled task tied to the installing user's logon session (`/SC ONLOGON /RU "[LogonUser]"`).
+  This registers an interactive (`/IT`), non-elevated (`/RL LIMITED`) scheduled task tied to the installing user's logon session (`/SC ONLOGON /RU "[LogonUser]"`), and immediately triggers it so the application runs without requiring a logoff/reboot.
 - **Uninstall Action:** During product removal, a custom action executes `schtasks.exe /Delete /TN "List-it" /F` to ensure no orphaned scheduled tasks remain.

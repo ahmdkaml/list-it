@@ -21,6 +21,19 @@
                   Impersonate="no"
                   Return="ignore" />
 
+    <!-- Run Scheduled Task after Install -->
+    <SetProperty Id="RunListItTask"
+                 Value="&quot;schtasks.exe&quot; /Run /TN &quot;List-it&quot;"
+                 Before="RunListItTask"
+                 Sequence="execute" />
+
+    <CustomAction Id="RunListItTask"
+                  BinaryRef="Wix4UtilCA_$(sys.BUILDARCHSHORT)"
+                  DllEntry="WixQuietExec"
+                  Execute="deferred"
+                  Impersonate="no"
+                  Return="ignore" />
+
     <!-- Remove Scheduled Task on Uninstall -->
     <SetProperty Id="DeleteListItTask"
                  Value="&quot;schtasks.exe&quot; /Delete /TN &quot;List-it&quot; /F"
@@ -37,6 +50,8 @@
     <InstallExecuteSequence>
       <!-- Execute task creation only on install/upgrade, after all files are flushed to disk -->
       <Custom Action="CreateListItTask" After="InstallFiles" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
+      <!-- Launch task immediately after creation on install/upgrade -->
+      <Custom Action="RunListItTask" After="CreateListItTask" Condition="NOT Installed OR UPGRADINGPRODUCTCODE" />
       <!-- Delete scheduled task when uninstalling -->
       <Custom Action="DeleteListItTask" Before="RemoveFiles" Condition="Installed AND (REMOVE=&quot;ALL&quot;)" />
     </InstallExecuteSequence>
