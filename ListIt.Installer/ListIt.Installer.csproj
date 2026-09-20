@@ -1,4 +1,4 @@
-﻿<Project Sdk="WixToolset.Sdk/5.0.2">
+<Project Sdk="WixToolset.Sdk/5.0.2">
 
   <PropertyGroup>
     <OutputType>Package</OutputType>
@@ -14,7 +14,7 @@
     <!-- Automatically publishes ListIt during MSI build -->
     <ProjectReference Include="..\ListIt\ListIt.csproj"
                       Publish="true"
-                      Properties="Configuration=Release;RuntimeIdentifier=win-x64;SelfContained=true" />
+                      Properties="Configuration=Release;RuntimeIdentifier=win-x64;SelfContained=false" />
   </ItemGroup>
 
 </Project>
