@@ -7,8 +7,9 @@
         ResizeMode="NoResize"
         WindowStyle="None"
         Background="#18181B"
-        ShowInTaskbar="True"
-        Topmost="True">
+        ShowInTaskbar="False"
+        ShowActivated="False"
+        Topmost="False">
 
     <Border BorderBrush="#3F3F46"
             BorderThickness="1"
