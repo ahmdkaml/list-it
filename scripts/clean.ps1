@@ -13,6 +13,14 @@ $dirsToClean = @(
     (Join-Path $repoRoot "dist"),
     (Join-Path $repoRoot "ListIt/bin"),
     (Join-Path $repoRoot "ListIt/obj"),
+    (Join-Path $repoRoot "ListIt.Core/bin"),
+    (Join-Path $repoRoot "ListIt.Core/obj"),
+    (Join-Path $repoRoot "ListIt.Shell/bin"),
+    (Join-Path $repoRoot "ListIt.Shell/obj"),
+    (Join-Path $repoRoot "ListIt.UI/bin"),
+    (Join-Path $repoRoot "ListIt.UI/obj"),
+    (Join-Path $repoRoot "ListIt.Tests/bin"),
+    (Join-Path $repoRoot "ListIt.Tests/obj"),
     (Join-Path $repoRoot "ListIt.Installer/bin"),
     (Join-Path $repoRoot "ListIt.Installer/obj")
 )

@@ -79,3 +79,10 @@ Instead of relying on standard registry run keys, `List-it` leverages Windows Ta
   ```
   This registers an interactive (`/IT`), non-elevated (`/RL LIMITED`) scheduled task tied to the installing user's logon session (`/SC ONLOGON /RU "[LogonUser]"`), and immediately triggers it so the application runs without requiring a logoff/reboot.
 - **Uninstall Action:** During product removal, a custom action executes `schtasks.exe /Delete /TN "List-it" /F` to ensure no orphaned scheduled tasks remain.
+
+---
+
+## 5. Contributors
+
+- [Ahmed Kamel](https://github.com/ahmdkaml)
+- [Antigravity](https://github.com/google-deepmind) (Google DeepMind)

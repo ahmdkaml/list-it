@@ -1,4 +1,8 @@
 <Solution>
-  <Project Path="ListIt.Installer/ListIt.Installer.csproj" />
+  <Project Path="ListIt.Core/ListIt.Core.csproj" />
+  <Project Path="ListIt.Shell/ListIt.Shell.csproj" />
+  <Project Path="ListIt.UI/ListIt.UI.csproj" />
+  <Project Path="ListIt.Tests/ListIt.Tests.csproj" />
   <Project Path="ListIt/ListIt.csproj" />
+  <Project Path="ListIt.Installer/ListIt.Installer.csproj" />
 </Solution>
