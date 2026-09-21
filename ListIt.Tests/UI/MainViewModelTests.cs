@@ -39,10 +39,10 @@ public class MainViewModelTests
             return task;
         }
 
-        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1)
+        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null)
         {
             CreateFiniteCallCount++;
-            var task = new FiniteTask(title, requiredCompletions, 0, description, urgency);
+            var task = new FiniteTask(title, requiredCompletions, 0, description, urgency, dueAt);
             _tasks.Add(task);
             return task;
         }
