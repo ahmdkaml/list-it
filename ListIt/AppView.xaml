@@ -1,0 +1,26 @@
+<UserControl x:Class="ListIt.AppView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             mc:Ignorable="d" 
+             d:DesignHeight="124" d:DesignWidth="224"
+             Background="#18181B"
+             Cursor="Arrow"
+             MouseLeftButtonDown="AppView_MouseLeftButtonDown">
+    <Grid VerticalAlignment="Center">
+        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+            <TextBlock Text="LIST-IT"
+                       FontSize="11"
+                       FontWeight="Bold"
+                       Foreground="#A1A1AA"
+                       HorizontalAlignment="Center"
+                       Margin="0,0,0,8"/>
+            <TextBlock Text="hello there"
+                       FontSize="24"
+                       FontWeight="Bold"
+                       Foreground="#FFFFFF"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</UserControl>

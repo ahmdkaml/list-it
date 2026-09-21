@@ -135,14 +135,8 @@ public class WindowsShellAnchorService : IShellAnchorService
                 if (lParam != IntPtr.Zero)
                 {
                     var pos = Marshal.PtrToStructure<WINDOWPOS>(lParam);
-                    // Prevent any attempt to raise window to HWND_TOP, HWND_TOPMOST, or change away from HWND_BOTTOM
-                    if (pos.hwndInsertAfter == IntPtr.Zero || pos.hwndInsertAfter == new IntPtr(-1))
-                    {
-                        pos.hwndInsertAfter = HWND_BOTTOM;
-                        pos.flags &= ~SWP_NOZORDER;
-                        Marshal.StructureToPtr(pos, lParam, true);
-                    }
-                    else if ((pos.flags & SWP_NOZORDER) == 0 && pos.hwndInsertAfter != HWND_BOTTOM)
+                    // Only enforce HWND_BOTTOM when a Z-order change is actually requested (SWP_NOZORDER is not set)
+                    if ((pos.flags & SWP_NOZORDER) == 0 && pos.hwndInsertAfter != HWND_BOTTOM)
                     {
                         pos.hwndInsertAfter = HWND_BOTTOM;
                         Marshal.StructureToPtr(pos, lParam, true);
