@@ -1,7 +1,10 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using ListIt.Core.Services;
+using ListIt.Infrastructure.Persistence;
 using ListIt.Shell.Windows.Desktop;
+using ListIt.UI.ViewModels;
 
 namespace ListIt;
 
@@ -23,6 +26,13 @@ public partial class MainWindow : Window
         _shellBox = shellBox ?? throw new ArgumentNullException(nameof(shellBox));
 
         InitializeComponent();
+
+        // Composition root: Repository -> Service -> ViewModel
+        var repository = new JsonTaskRepository();
+        var taskService = new TaskService(repository);
+        var mainViewModel = new MainViewModel(taskService);
+        DataContext = mainViewModel;
+
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
     }

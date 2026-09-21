@@ -3,22 +3,178 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:views="clr-namespace:ListIt.UI.Views"
              mc:Ignorable="d" 
-             d:DesignHeight="124" d:DesignWidth="224"
+             d:DesignHeight="420" d:DesignWidth="300"
              Background="#18181B"
              Cursor="Arrow"
              MouseLeftButtonDown="AppView_MouseLeftButtonDown">
 
     <UserControl.Resources>
-        <ResourceDictionary Source="/ListIt.UI;component/Styles/WidgetStyles.xaml" />
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/ListIt.UI;component/Styles/WidgetStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+            <BooleanToVisibilityConverter x:Key="BoolToVis" />
+        </ResourceDictionary>
     </UserControl.Resources>
 
-    <Grid VerticalAlignment="Center">
-        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-            <TextBlock Text="LIST-IT"
-                       Style="{StaticResource WidgetHeaderTextStyle}" />
-            <TextBlock Text="hello there"
-                       Style="{StaticResource WidgetBodyTextStyle}" />
-        </StackPanel>
+    <Grid Margin="12">
+        <!-- Main Task List View (visible when Editor is closed) -->
+        <Grid>
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Visible" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Top Header & Add Action -->
+            <DockPanel Grid.Row="0" Margin="0,0,0,10">
+                <Button Content="+ New"
+                        Command="{Binding OpenCreateTaskCommand}"
+                        Background="#2563EB"
+                        Foreground="#FFFFFF"
+                        BorderThickness="0"
+                        Padding="10,4"
+                        FontWeight="SemiBold"
+                        FontSize="11"
+                        DockPanel.Dock="Right" />
+                <TextBlock Text="LIST-IT"
+                           Foreground="#A1A1AA"
+                           FontSize="13"
+                           FontWeight="Bold"
+                           VerticalAlignment="Center" />
+            </DockPanel>
+
+            <!-- Task List -->
+            <Grid Grid.Row="1">
+                <ListBox ItemsSource="{Binding Tasks}"
+                         SelectedItem="{Binding SelectedTask}"
+                         Background="#27272A"
+                         BorderBrush="#3F3F46"
+                         BorderThickness="1"
+                         ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <ListBox.ItemTemplate>
+                        <DataTemplate>
+                            <Border Padding="8,6" BorderBrush="#3F3F46" BorderThickness="0,0,0,1">
+                                <Grid>
+                                    <Grid.RowDefinitions>
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                        <RowDefinition Height="Auto" />
+                                    </Grid.RowDefinitions>
+
+                                    <!-- Title and Type Badge -->
+                                    <DockPanel Grid.Row="0">
+                                        <Border Background="#3F3F46" CornerRadius="3" Padding="4,1" DockPanel.Dock="Right" Margin="4,0,0,0">
+                                            <TextBlock Text="{Binding TypeDisplay}" Foreground="#D4D4D8" FontSize="9" FontWeight="SemiBold" />
+                                        </Border>
+                                        <TextBlock Text="{Binding Title}"
+                                                   Foreground="#FFFFFF"
+                                                   FontWeight="Bold"
+                                                   FontSize="12"
+                                                   TextTrimming="CharacterEllipsis" />
+                                    </DockPanel>
+
+                                    <!-- Details & Urgency -->
+                                    <DockPanel Grid.Row="1" Margin="0,3,0,0">
+                                        <TextBlock Text="{Binding Urgency, StringFormat='Urgency: {0}'}"
+                                                   Foreground="#F59E0B"
+                                                   FontSize="10"
+                                                   FontWeight="SemiBold"
+                                                   DockPanel.Dock="Right" />
+                                        <TextBlock Text="{Binding DetailsDisplay}"
+                                                   Foreground="#A1A1AA"
+                                                   FontSize="10" />
+                                    </DockPanel>
+
+                                    <!-- Description (if present) -->
+                                    <TextBlock Grid.Row="2"
+                                               Text="{Binding Description}"
+                                               Foreground="#71717A"
+                                               FontSize="10"
+                                               TextTrimming="CharacterEllipsis"
+                                               Margin="0,2,0,0" />
+                                </Grid>
+                            </Border>
+                        </DataTemplate>
+                    </ListBox.ItemTemplate>
+                </ListBox>
+
+                <!-- Empty State Message -->
+                <TextBlock Text="No tasks yet.&#x0a;Click '+ New' to create one."
+                           Foreground="#71717A"
+                           FontSize="12"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center"
+                           VerticalAlignment="Center"
+                           IsHitTestVisible="False">
+                    <TextBlock.Style>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="Visibility" Value="Collapsed" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding Tasks.Count}" Value="0">
+                                    <Setter Property="Visibility" Value="Visible" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </TextBlock.Style>
+                </TextBlock>
+            </Grid>
+
+            <!-- Bottom Toolbar: Edit & Delete -->
+            <DockPanel Grid.Row="2" Margin="0,10,0,0">
+                <Button Content="Delete"
+                        Command="{Binding DeleteTaskCommand}"
+                        IsEnabled="{Binding HasSelectedTask}"
+                        Background="#DC2626"
+                        Foreground="#FFFFFF"
+                        BorderThickness="0"
+                        Padding="12,5"
+                        FontWeight="SemiBold"
+                        FontSize="11"
+                        DockPanel.Dock="Right"
+                        Margin="4,0,0,0" />
+                <Button Content="Edit"
+                        Command="{Binding OpenEditTaskCommand}"
+                        IsEnabled="{Binding HasSelectedTask}"
+                        Background="#3F3F46"
+                        Foreground="#FFFFFF"
+                        BorderThickness="0"
+                        Padding="12,5"
+                        FontSize="11"
+                        DockPanel.Dock="Right" />
+                <TextBlock Text="{Binding Tasks.Count, StringFormat='{}{0} task(s)'}"
+                           Foreground="#71717A"
+                           FontSize="11"
+                           VerticalAlignment="Center" />
+            </DockPanel>
+        </Grid>
+
+        <!-- Task Editor Overlay (visible when IsEditorOpen is true) -->
+        <Grid>
+            <Grid.Style>
+                <Style TargetType="Grid">
+                    <Setter Property="Visibility" Value="Collapsed" />
+                    <Style.Triggers>
+                        <DataTrigger Binding="{Binding IsEditorOpen}" Value="True">
+                            <Setter Property="Visibility" Value="Visible" />
+                        </DataTrigger>
+                    </Style.Triggers>
+                </Style>
+            </Grid.Style>
+            <views:TaskEditorView DataContext="{Binding Editor}" />
+        </Grid>
     </Grid>
 </UserControl>

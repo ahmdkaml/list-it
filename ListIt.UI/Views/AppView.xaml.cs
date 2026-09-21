@@ -17,6 +17,13 @@ public partial class AppView : UserControl
 
     private void AppView_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
+        // Activate window so text boxes and controls receive keyboard focus
+        var window = System.Windows.Window.GetWindow(this);
+        if (window != null && !window.IsActive)
+        {
+            window.Activate();
+        }
+
         // Normal mouse behavior: content clicks do not trigger window dragging
         e.Handled = true;
     }
