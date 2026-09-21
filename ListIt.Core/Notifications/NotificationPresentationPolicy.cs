@@ -46,7 +46,8 @@ public class NotificationPresentationPolicy : INotificationPresentationPolicy
                 remaining: remaining,
                 visualCategory: visualCategory,
                 opacity: 0.0,
-                suppressionResult: suppression);
+                suppressionResult: suppression,
+                taskTitle: context.Task.Title);
         }
 
         // Suppressed notifications do not produce an emit-ready presentation decision
@@ -61,7 +62,8 @@ public class NotificationPresentationPolicy : INotificationPresentationPolicy
                 remaining: remaining,
                 visualCategory: visualCategory,
                 opacity: 0.0,
-                suppressionResult: suppression);
+                suppressionResult: suppression,
+                taskTitle: context.Task.Title);
         }
 
         return NotificationDecision.Notify(
@@ -73,7 +75,8 @@ public class NotificationPresentationPolicy : INotificationPresentationPolicy
             remaining: remaining,
             visualCategory: visualCategory,
             opacity: opacity,
-            suppressionResult: suppression);
+            suppressionResult: suppression,
+            taskTitle: context.Task.Title);
     }
 
     public NotificationVisualCategory GetVisualCategory(int urgency)

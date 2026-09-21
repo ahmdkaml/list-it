@@ -21,6 +21,7 @@ public class NotificationDecision
     public double Opacity { get; }
     public NotificationSuppressionResult? SuppressionResult { get; }
     public IReadOnlyList<NotificationOpportunity> Opportunities { get; }
+    public string TaskTitle { get; }
 
     public NotificationDecision(
         bool shouldNotify,
@@ -33,7 +34,8 @@ public class NotificationDecision
         NotificationVisualCategory visualCategory,
         double opacity,
         NotificationSuppressionResult? suppressionResult = null,
-        IEnumerable<NotificationOpportunity>? opportunities = null)
+        IEnumerable<NotificationOpportunity>? opportunities = null,
+        string taskTitle = "")
     {
         ShouldNotify = shouldNotify;
         TaskId = taskId;
@@ -46,6 +48,7 @@ public class NotificationDecision
         Opacity = opacity;
         SuppressionResult = suppressionResult;
         Opportunities = (opportunities?.ToList() ?? new List<NotificationOpportunity>()).AsReadOnly();
+        TaskTitle = taskTitle ?? string.Empty;
     }
 
     /// <summary>
@@ -61,7 +64,8 @@ public class NotificationDecision
         NotificationVisualCategory visualCategory = NotificationVisualCategory.Low,
         double opacity = 0.0,
         NotificationSuppressionResult? suppressionResult = null,
-        IEnumerable<NotificationOpportunity>? opportunities = null)
+        IEnumerable<NotificationOpportunity>? opportunities = null,
+        string taskTitle = "")
     {
         return new NotificationDecision(
             shouldNotify: false,
@@ -74,7 +78,8 @@ public class NotificationDecision
             visualCategory: visualCategory,
             opacity: opacity,
             suppressionResult: suppressionResult,
-            opportunities: opportunities);
+            opportunities: opportunities,
+            taskTitle: taskTitle);
     }
 
     /// <summary>
@@ -90,7 +95,8 @@ public class NotificationDecision
         NotificationVisualCategory visualCategory,
         double opacity = 1.0,
         NotificationSuppressionResult? suppressionResult = null,
-        IEnumerable<NotificationOpportunity>? opportunities = null)
+        IEnumerable<NotificationOpportunity>? opportunities = null,
+        string taskTitle = "")
     {
         return new NotificationDecision(
             shouldNotify: true,
@@ -103,6 +109,7 @@ public class NotificationDecision
             visualCategory: visualCategory,
             opacity: opacity,
             suppressionResult: suppressionResult,
-            opportunities: opportunities);
+            opportunities: opportunities,
+            taskTitle: taskTitle);
     }
 }

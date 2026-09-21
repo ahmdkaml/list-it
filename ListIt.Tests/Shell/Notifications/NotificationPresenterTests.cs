@@ -170,4 +170,29 @@ public class NotificationPresenterTests
         var presenter = new WindowsNotificationPresenter();
         Assert.Throws<ArgumentNullException>(() => presenter.Present(null!));
     }
+
+    [Fact]
+    public void Present_WithTaskTitle_PreservesTitleInRequest()
+    {
+        NotificationPresentationRequest? captured = null;
+        var presenter = new WindowsNotificationPresenter(
+            uiDispatcher: action => action(),
+            onDisplayRequested: req => captured = req);
+
+        var decision = NotificationDecision.Notify(
+            taskId: Guid.NewGuid(),
+            occurrenceId: Guid.NewGuid(),
+            urgency: 2,
+            skipCount: 0,
+            elapsed: TimeSpan.Zero,
+            remaining: TimeSpan.Zero,
+            visualCategory: NotificationVisualCategory.Low,
+            opacity: 0.5,
+            taskTitle: "Important Project Task");
+
+        presenter.Present(decision);
+
+        Assert.NotNull(captured);
+        Assert.Equal("Important Project Task", captured!.TaskTitle);
+    }
 }
