@@ -40,3 +40,7 @@ Thumbs.db
 ## app
 dist/
 publish/
+
+## Internal guides
+.github-issue-guide.md
+.agent-guide.md
