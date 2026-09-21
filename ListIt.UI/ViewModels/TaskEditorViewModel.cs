@@ -19,6 +19,7 @@ public class TaskEditorViewModel : ViewModelBase
     private int _urgency = 1;
     private string _newTimeString = "09:00";
     private int _requiredCompletions = 1;
+    private string _finiteDueTimeString = string.Empty;
     private string? _errorMessage;
 
     public ObservableCollection<TimeOnly> AssignedTimes { get; } = new();
@@ -88,6 +89,12 @@ public class TaskEditorViewModel : ViewModelBase
         set => SetProperty(ref _requiredCompletions, value);
     }
 
+    public string FiniteDueTimeString
+    {
+        get => _finiteDueTimeString;
+        set => SetProperty(ref _finiteDueTimeString, value);
+    }
+
     public string? ErrorMessage
     {
         get => _errorMessage;
@@ -124,6 +131,7 @@ public class TaskEditorViewModel : ViewModelBase
         Urgency = 1;
         NewTimeString = "09:00";
         RequiredCompletions = 1;
+        FiniteDueTimeString = string.Empty;
         ErrorMessage = null;
 
         AssignedTimes.Clear();
@@ -152,11 +160,13 @@ public class TaskEditorViewModel : ViewModelBase
             }
             _existingCurrentCompletions = 0;
             RequiredCompletions = 1;
+            FiniteDueTimeString = string.Empty;
         }
         else if (task is FiniteTask finite)
         {
             _existingCurrentCompletions = finite.CurrentCompletions;
             RequiredCompletions = finite.RequiredCompletions;
+            FiniteDueTimeString = finite.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
         }
     }
 
@@ -233,6 +243,28 @@ public class TaskEditorViewModel : ViewModelBase
                     return;
                 }
 
+                DateTime? dueAt = null;
+                if (!string.IsNullOrWhiteSpace(FiniteDueTimeString))
+                {
+                    if (TimeOnly.TryParse(FiniteDueTimeString, out var timeOnly))
+                    {
+                        var todayTime = DateTime.Today.Add(timeOnly.ToTimeSpan());
+                        var localTime = todayTime <= DateTime.Now ? todayTime.AddDays(1) : todayTime;
+                        dueAt = DateTime.SpecifyKind(localTime, DateTimeKind.Local).ToUniversalTime();
+                    }
+                    else if (DateTime.TryParse(FiniteDueTimeString, out var dateTime))
+                    {
+                        dueAt = dateTime.Kind == DateTimeKind.Unspecified
+                            ? DateTime.SpecifyKind(dateTime, DateTimeKind.Local).ToUniversalTime()
+                            : dateTime.ToUniversalTime();
+                    }
+                    else
+                    {
+                        ErrorMessage = "Invalid due time (e.g. '18:00' or 'yyyy-MM-dd HH:mm', or leave blank for 1 day).";
+                        return;
+                    }
+                }
+
                 if (IsEditing && ExistingTaskId.HasValue)
                 {
                     if (RequiredCompletions < _existingCurrentCompletions)
@@ -241,11 +273,11 @@ public class TaskEditorViewModel : ViewModelBase
                         return;
                     }
 
-                    resultTask = new FiniteTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, RequiredCompletions, _existingCurrentCompletions);
+                    resultTask = new FiniteTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, RequiredCompletions, _existingCurrentCompletions, dueAt);
                 }
                 else
                 {
-                    resultTask = new FiniteTask(Title, RequiredCompletions, currentCompletions: 0, description: Description, urgency: Urgency);
+                    resultTask = new FiniteTask(Title, RequiredCompletions, currentCompletions: 0, description: Description, urgency: Urgency, dueAt: dueAt);
                 }
             }
 

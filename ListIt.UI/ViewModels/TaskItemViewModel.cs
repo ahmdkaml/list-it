@@ -32,9 +32,27 @@ public class TaskItemViewModel : ViewModelBase
         RecurringTask r => r.AssignedTimes.Count > 0
             ? string.Join(", ", r.AssignedTimes.Select(t => t.ToString("HH:mm")))
             : "No schedule",
-        FiniteTask f => $"{f.CurrentCompletions} / {f.RequiredCompletions} completed",
+        FiniteTask f => $"{f.CurrentCompletions} / {f.RequiredCompletions} completed • Due: {FormatDueAt(f.DueAt)}",
         _ => string.Empty
     };
 
     public TaskBase Task => _task;
+
+    private static string FormatDueAt(DateTime utcDueAt)
+    {
+        var localDue = utcDueAt.ToLocalTime();
+        var today = DateTime.Today;
+
+        if (localDue.Date == today)
+        {
+            return $"Today {localDue:HH:mm}";
+        }
+
+        if (localDue.Date == today.AddDays(1))
+        {
+            return $"Tomorrow {localDue:HH:mm}";
+        }
+
+        return localDue.ToString("MMM d, HH:mm");
+    }
 }

@@ -199,4 +199,69 @@ public class TaskEditorViewModelTests
         Assert.False(wasSaved);
         Assert.NotNull(vm.ErrorMessage);
     }
+
+    [Fact]
+    public void SaveCommand_ValidFiniteTask_WithNoDueTime_DefaultsToOneDay()
+    {
+        // Arrange
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+        vm.SelectedType = TaskType.Finite;
+        vm.Title = "Finite Default Due";
+        vm.FiniteDueTimeString = string.Empty;
+
+        TaskBase? savedTask = null;
+        vm.TaskSaved += (s, t) => savedTask = t;
+
+        // Act
+        vm.SaveCommand.Execute(null);
+
+        // Assert
+        Assert.NotNull(savedTask);
+        var finite = Assert.IsType<FiniteTask>(savedTask);
+        Assert.Equal(finite.CreatedAt.AddDays(1), finite.DueAt);
+    }
+
+    [Fact]
+    public void SaveCommand_ValidFiniteTask_WithCustomDueTime_SetsDueAt()
+    {
+        // Arrange
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+        vm.SelectedType = TaskType.Finite;
+        vm.Title = "Finite Custom Due";
+        vm.FiniteDueTimeString = "2028-12-31 23:59";
+
+        TaskBase? savedTask = null;
+        vm.TaskSaved += (s, t) => savedTask = t;
+
+        // Act
+        vm.SaveCommand.Execute(null);
+
+        // Assert
+        Assert.NotNull(savedTask);
+        var finite = Assert.IsType<FiniteTask>(savedTask);
+        Assert.Equal(new DateTime(2028, 12, 31, 23, 59, 0, DateTimeKind.Local).ToUniversalTime(), finite.DueAt);
+    }
+
+    [Fact]
+    public void SaveCommand_FiniteTask_WithInvalidDueTime_SetsErrorMessage()
+    {
+        // Arrange
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+        vm.SelectedType = TaskType.Finite;
+        vm.Title = "Finite Invalid Due";
+        vm.FiniteDueTimeString = "not-a-valid-time-format";
+
+        var wasSaved = false;
+        vm.TaskSaved += (s, t) => wasSaved = true;
+
+        // Act
+        vm.SaveCommand.Execute(null);
+
+        // Assert
+        Assert.False(wasSaved);
+        Assert.NotNull(vm.ErrorMessage);
+    }
 }

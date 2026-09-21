@@ -127,6 +127,15 @@
                          BorderBrush="#3F3F46"
                          Padding="4,2"
                          Margin="0,0,0,8" />
+
+                <TextBlock Text="Due Time (Optional - defaults to 1 day)" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />
+                <TextBox Text="{Binding FiniteDueTimeString, UpdateSourceTrigger=PropertyChanged}"
+                         Background="#27272A"
+                         Foreground="#FFFFFF"
+                         CaretBrush="#FFFFFF"
+                         BorderBrush="#3F3F46"
+                         Padding="4,2"
+                         Margin="0,0,0,8" />
             </StackPanel>
 
             <!-- Error Message -->

@@ -120,4 +120,45 @@ public class FiniteTaskTests
         // Reject zero or negative
         Assert.Throws<ArgumentOutOfRangeException>(() => task.SetRequiredCompletions(0));
     }
+
+    [Fact]
+    public void DueAt_WhenNotProvided_DefaultsToOneDayAfterCreatedAt()
+    {
+        // Act
+        var task = new FiniteTask("Task", requiredCompletions: 1);
+
+        // Assert
+        Assert.Equal(task.CreatedAt.AddDays(1), task.DueAt);
+    }
+
+    [Fact]
+    public void DueAt_WhenProvided_IsStoredAndNormalizedToUtc()
+    {
+        // Arrange
+        var customDue = DateTime.UtcNow.AddHours(5);
+
+        // Act
+        var task = new FiniteTask("Task", requiredCompletions: 1, dueAt: customDue);
+
+        // Assert
+        Assert.Equal(customDue, task.DueAt);
+    }
+
+    [Fact]
+    public void SetDueAt_UpdatesDueAt()
+    {
+        // Arrange
+        var task = new FiniteTask("Task", requiredCompletions: 1);
+        var newDue = DateTime.UtcNow.AddDays(3);
+
+        // Act
+        task.SetDueAt(newDue);
+
+        // Assert
+        Assert.Equal(newDue, task.DueAt);
+
+        // Act - reset to default by passing null
+        task.SetDueAt(null);
+        Assert.Equal(task.CreatedAt.AddDays(1), task.DueAt);
+    }
 }

@@ -13,7 +13,7 @@ public interface ITaskService
     IReadOnlyList<TaskBase> GetAllTasks();
     TaskBase? GetTask(Guid id);
     RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1);
-    FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1);
+    FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null);
     void UpdateTask(TaskBase task);
     bool DeleteTask(Guid id);
 }

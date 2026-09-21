@@ -39,7 +39,8 @@ internal abstract class TaskDto
                 Urgency = finite.Urgency,
                 CreatedAt = finite.CreatedAt,
                 RequiredCompletions = finite.RequiredCompletions,
-                CurrentCompletions = finite.CurrentCompletions
+                CurrentCompletions = finite.CurrentCompletions,
+                DueAt = finite.DueAt
             },
             _ => throw new NotSupportedException($"Unsupported task type: {task.GetType().Name}")
         };
@@ -60,9 +61,11 @@ internal class FiniteTaskDto : TaskDto
 {
     public int RequiredCompletions { get; set; }
     public int CurrentCompletions { get; set; }
+    public DateTime DueAt { get; set; }
 
     public override TaskBase ToDomain()
     {
-        return new FiniteTask(Id, Title, Description, Urgency, CreatedAt, RequiredCompletions, CurrentCompletions);
+        DateTime? dueAt = DueAt == default ? null : DueAt;
+        return new FiniteTask(Id, Title, Description, Urgency, CreatedAt, RequiredCompletions, CurrentCompletions, dueAt);
     }
 }

@@ -34,9 +34,9 @@ public class TaskService : ITaskService
         return task;
     }
 
-    public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1)
+    public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null)
     {
-        var task = new FiniteTask(title, requiredCompletions, currentCompletions: 0, description, urgency);
+        var task = new FiniteTask(title, requiredCompletions, currentCompletions: 0, description, urgency, dueAt);
         _repository.Add(task);
         return task;
     }

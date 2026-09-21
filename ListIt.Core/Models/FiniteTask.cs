@@ -11,18 +11,21 @@ public class FiniteTask : TaskBase
 
     public int RequiredCompletions { get; private set; }
     public int CurrentCompletions { get; private set; }
+    public DateTime DueAt { get; private set; }
 
     public FiniteTask(
         string title,
         int requiredCompletions,
         int currentCompletions = 0,
         string description = "",
-        int urgency = 1)
+        int urgency = 1,
+        DateTime? dueAt = null)
         : base(title, description, urgency)
     {
         ValidateCompletions(requiredCompletions, currentCompletions);
         RequiredCompletions = requiredCompletions;
         CurrentCompletions = currentCompletions;
+        DueAt = NormalizeDueAt(dueAt, CreatedAt);
     }
 
     public FiniteTask(
@@ -32,12 +35,19 @@ public class FiniteTask : TaskBase
         int urgency,
         DateTime createdAt,
         int requiredCompletions,
-        int currentCompletions)
+        int currentCompletions,
+        DateTime? dueAt = null)
         : base(id, title, description, urgency, createdAt)
     {
         ValidateCompletions(requiredCompletions, currentCompletions);
         RequiredCompletions = requiredCompletions;
         CurrentCompletions = currentCompletions;
+        DueAt = NormalizeDueAt(dueAt, CreatedAt);
+    }
+
+    public void SetDueAt(DateTime? dueAt)
+    {
+        DueAt = NormalizeDueAt(dueAt, CreatedAt);
     }
 
     public void SetRequiredCompletions(int requiredCompletions)
@@ -77,5 +87,20 @@ public class FiniteTask : TaskBase
         {
             throw new ArgumentException($"Current completions ({current}) cannot exceed required completions ({required}).");
         }
+    }
+
+    private static DateTime NormalizeDueAt(DateTime? dueAt, DateTime createdAt)
+    {
+        if (!dueAt.HasValue)
+        {
+            return createdAt.AddDays(1);
+        }
+
+        if (dueAt.Value.Kind == DateTimeKind.Unspecified)
+        {
+            return DateTime.SpecifyKind(dueAt.Value, DateTimeKind.Utc);
+        }
+
+        return dueAt.Value.ToUniversalTime();
     }
 }
