@@ -13,6 +13,15 @@ public class TaskOccurrence
     public DateTime ScheduledAt { get; }
     public OccurrenceStatus Status { get; private set; }
 
+    /// <summary>
+    /// Deterministic logical key identifying the occurrence by parent task and scheduled time.
+    /// Used by schedulers to recognize duplicate occurrences across regeneration passes.
+    /// </summary>
+    public string LogicalKey => GetLogicalKey(TaskId, ScheduledAt);
+
+    public static string GetLogicalKey(Guid taskId, DateTime scheduledAt) =>
+        $"{taskId:D}_{scheduledAt:yyyy-MM-ddTHH:mm:ss}";
+
     public TaskOccurrence(Guid taskId, DateTime scheduledAt)
         : this(Guid.NewGuid(), taskId, scheduledAt, OccurrenceStatus.Pending)
     {
