@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace ListIt;
+namespace ListIt.UI.Views;
 
 /// <summary>
 /// Interaction logic for AppView.xaml.

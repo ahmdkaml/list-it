@@ -1,4 +1,4 @@
-<UserControl x:Class="ListIt.AppView"
+<UserControl x:Class="ListIt.UI.Views.AppView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
@@ -8,19 +8,17 @@
              Background="#18181B"
              Cursor="Arrow"
              MouseLeftButtonDown="AppView_MouseLeftButtonDown">
+
+    <UserControl.Resources>
+        <ResourceDictionary Source="/ListIt;component/UI/Styles/WidgetStyles.xaml" />
+    </UserControl.Resources>
+
     <Grid VerticalAlignment="Center">
         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
             <TextBlock Text="LIST-IT"
-                       FontSize="11"
-                       FontWeight="Bold"
-                       Foreground="#A1A1AA"
-                       HorizontalAlignment="Center"
-                       Margin="0,0,0,8"/>
+                       Style="{StaticResource WidgetHeaderTextStyle}" />
             <TextBlock Text="hello there"
-                       FontSize="24"
-                       FontWeight="Bold"
-                       Foreground="#FFFFFF"
-                       HorizontalAlignment="Center"/>
+                       Style="{StaticResource WidgetBodyTextStyle}" />
         </StackPanel>
     </Grid>
 </UserControl>

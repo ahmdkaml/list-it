@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace ListIt.Services;
+namespace ListIt.Shell.Services;
 
 /// <summary>
 /// Service abstraction for anchoring a window into the Windows desktop shell.
