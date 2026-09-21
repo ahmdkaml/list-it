@@ -45,4 +45,21 @@ public class BasicFunctionalityTests
         var exception = Record.Exception(() => service.SendToBottom(null!));
         Assert.Null(exception);
     }
+
+    [Fact]
+    public void DesktopShellBox_HandlesNullWindowGracefully()
+    {
+        // Arrange
+        var box = new DesktopShellBox();
+
+        // Act & Assert
+        var attachException = Record.Exception(() => box.Attach(null!));
+        Assert.Null(attachException);
+
+        var centerException = Record.Exception(() => box.CenterAndPinToBottom(null!));
+        Assert.Null(centerException);
+
+        var dragException = Record.Exception(() => box.HandleDrag(null!));
+        Assert.Null(dragException);
+    }
 }

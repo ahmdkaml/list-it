@@ -1,6 +1,7 @@
 <Window x:Class="ListIt.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:ListIt"
         Title="ListIt"
         Height="140" Width="240"
         WindowStartupLocation="CenterScreen"
@@ -11,25 +12,16 @@
         ShowActivated="False"
         Topmost="False">
 
-    <Border BorderBrush="#3F3F46"
+    <!-- Shell Box: Outer 8px padding/frame is the draggable grip -->
+    <Border x:Name="ShellDragGrip"
+            BorderBrush="#3F3F46"
             BorderThickness="1"
-            Padding="16"
+            Padding="8"
             Cursor="SizeAll"
-            MouseLeftButtonDown="Border_MouseLeftButtonDown">
-        <Grid VerticalAlignment="Center">
-            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
-                <TextBlock Text="LIST-IT"
-                           FontSize="11"
-                           FontWeight="Bold"
-                           Foreground="#A1A1AA"
-                           HorizontalAlignment="Center"
-                           Margin="0,0,0,8"/>
-                <TextBlock Text="hello there"
-                           FontSize="24"
-                           FontWeight="Bold"
-                           Foreground="#FFFFFF"
-                           HorizontalAlignment="Center"/>
-            </StackPanel>
-        </Grid>
+            Background="#18181B"
+            MouseLeftButtonDown="ShellDragGrip_MouseLeftButtonDown">
+
+        <!-- App UI View: Normal mouse interaction for all inner controls -->
+        <local:AppView />
     </Border>
 </Window>

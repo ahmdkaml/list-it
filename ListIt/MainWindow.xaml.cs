@@ -1,31 +1,26 @@
 using System;
-using System.Runtime.InteropServices;
 using System.Windows;
-using System.Windows.Interop;
+using System.Windows.Input;
 using ListIt.Services;
 
 namespace ListIt;
 
 /// <summary>
-/// Interaction logic for MainWindow.xaml
+/// Interaction logic for MainWindow.xaml (Shell Window Host).
+/// Uses DesktopShellBox for all OS window positioning and desktop anchoring.
+/// Outer 8px frame is the draggable grip; inner AppView has normal mouse interaction.
 /// </summary>
 public partial class MainWindow : Window
 {
-    private readonly IShellAnchorService _shellAnchorService;
+    private readonly DesktopShellBox _shellBox;
 
-    [DllImport("user32.dll")]
-    private static extern bool ReleaseCapture();
-
-    [DllImport("user32.dll")]
-    private static extern IntPtr SendMessage(IntPtr hWnd, int Msg, int wParam, int lParam);
-
-    public MainWindow() : this(new WindowsShellAnchorService())
+    public MainWindow() : this(new DesktopShellBox())
     {
     }
 
-    public MainWindow(IShellAnchorService shellAnchorService)
+    public MainWindow(DesktopShellBox shellBox)
     {
-        _shellAnchorService = shellAnchorService;
+        _shellBox = shellBox ?? throw new ArgumentNullException(nameof(shellBox));
 
         InitializeComponent();
         SourceInitialized += MainWindow_SourceInitialized;
@@ -34,37 +29,19 @@ public partial class MainWindow : Window
 
     private void MainWindow_SourceInitialized(object? sender, EventArgs e)
     {
-        // Attach to Windows desktop shell before window is shown so it never flashes over open apps
-        _shellAnchorService.AttachToDesktop(this);
+        _shellBox.Attach(this);
     }
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        // Center on screen
-        Left = (SystemParameters.WorkArea.Width - Width) / 2;
-        Top = (SystemParameters.WorkArea.Height - Height) / 2;
-
-        _shellAnchorService.SendToBottom(this);
+        _shellBox.CenterAndPinToBottom(this);
     }
 
-    private void Border_MouseLeftButtonDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
+    private void ShellDragGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
     {
-        if (e.ButtonState == System.Windows.Input.MouseButtonState.Pressed)
+        if (e.ButtonState == MouseButtonState.Pressed)
         {
-            try
-            {
-                DragMove();
-            }
-            catch
-            {
-                var helper = new WindowInteropHelper(this);
-                ReleaseCapture();
-                SendMessage(helper.Handle, 0x0112, 0xF012, 0);
-            }
-            finally
-            {
-                _shellAnchorService.SendToBottom(this);
-            }
+            _shellBox.HandleDrag(this);
         }
     }
 }
