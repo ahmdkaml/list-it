@@ -52,7 +52,8 @@ public class NotificationEngine : INotificationEngine
                 elapsed: elapsed,
                 remaining: remaining,
                 visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
-                opacity: 0.0);
+                opacity: 0.0,
+                taskTitle: context.Task.Title);
         }
 
         // 1. Evaluate time-based eligibility
@@ -68,7 +69,8 @@ public class NotificationEngine : INotificationEngine
                 remaining: remaining,
                 visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
                 opacity: 0.0,
-                opportunities: timingResult.EligibleOpportunities);
+                opportunities: timingResult.EligibleOpportunities,
+                taskTitle: context.Task.Title);
         }
 
         NotificationDecision? presentationDecision = null;
@@ -104,7 +106,8 @@ public class NotificationEngine : INotificationEngine
                 visualCategory: presentationDecision.VisualCategory,
                 opacity: presentationDecision.Opacity,
                 suppressionResult: presentationDecision.SuppressionResult,
-                opportunities: timingResult.EligibleOpportunities);
+                opportunities: timingResult.EligibleOpportunities,
+                taskTitle: context.Task.Title);
         }
 
         return NotificationDecision.DoNotNotify(
@@ -117,6 +120,7 @@ public class NotificationEngine : INotificationEngine
             visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
             opacity: 0.0,
             suppressionResult: lastSuppression,
-            opportunities: timingResult.EligibleOpportunities);
+            opportunities: timingResult.EligibleOpportunities,
+            taskTitle: context.Task.Title);
     }
 }

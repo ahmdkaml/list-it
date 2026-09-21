@@ -9,13 +9,16 @@ namespace ListIt.Shell.Notifications;
 /// <summary>
 /// Windows-specific notification delivery adapter.
 /// Translates platform-independent NotificationDecision models into presentation requests,
-/// isolates UI-thread dispatch, and protects the application runtime against presentation failures.
+/// isolates UI-thread dispatch, manages bottom-right window positioning and vertical stacking,
+/// and protects the application runtime against presentation failures.
 /// </summary>
 public class WindowsNotificationPresenter : INotificationPresenter
 {
     private readonly Action<Action> _uiDispatcher;
     private readonly Action<NotificationPresentationRequest>? _onDisplayRequested;
+    private readonly double _lifetimeSeconds;
     private readonly List<NotificationPresentationRequest> _activeRequests = new();
+    private readonly List<NotificationWindow> _activeWindows = new();
     private readonly object _lock = new();
 
     public IReadOnlyList<NotificationPresentationRequest> ActiveRequests
@@ -29,9 +32,21 @@ public class WindowsNotificationPresenter : INotificationPresenter
         }
     }
 
+    public IReadOnlyList<NotificationWindow> ActiveWindows
+    {
+        get
+        {
+            lock (_lock)
+            {
+                return _activeWindows.ToArray();
+            }
+        }
+    }
+
     public WindowsNotificationPresenter(
         Action<Action>? uiDispatcher = null,
-        Action<NotificationPresentationRequest>? onDisplayRequested = null)
+        Action<NotificationPresentationRequest>? onDisplayRequested = null,
+        double lifetimeSeconds = NotificationWindow.DefaultLifetimeSeconds)
     {
         _uiDispatcher = uiDispatcher ?? (action =>
         {
@@ -46,6 +61,7 @@ public class WindowsNotificationPresenter : INotificationPresenter
         });
 
         _onDisplayRequested = onDisplayRequested;
+        _lifetimeSeconds = lifetimeSeconds;
     }
 
     public void Present(NotificationDecision decision)
@@ -71,7 +87,14 @@ public class WindowsNotificationPresenter : INotificationPresenter
                         _activeRequests.Add(request);
                     }
 
-                    _onDisplayRequested?.Invoke(request);
+                    if (_onDisplayRequested != null)
+                    {
+                        _onDisplayRequested.Invoke(request);
+                    }
+                    else
+                    {
+                        DisplayWindow(request);
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -82,6 +105,60 @@ public class WindowsNotificationPresenter : INotificationPresenter
         catch (Exception ex)
         {
             Trace.TraceError($"Failed to dispatch notification presentation for Task {decision.TaskId}: {ex}");
+        }
+    }
+
+    private void DisplayWindow(NotificationPresentationRequest request)
+    {
+        var viewModel = new NotificationViewModel(request);
+        var window = new NotificationWindow(viewModel, _lifetimeSeconds);
+
+        lock (_lock)
+        {
+            _activeWindows.Add(window);
+        }
+
+        window.Loaded += (s, e) => ReflowWindows();
+
+        window.Closed += (s, e) =>
+        {
+            lock (_lock)
+            {
+                _activeWindows.Remove(window);
+                _activeRequests.Remove(request);
+            }
+            ReflowWindows();
+        };
+
+        // Initial approximate position before Loaded
+        var workArea = SystemParameters.WorkArea;
+        var approxSize = new Size(320, 160);
+        int currentIndex;
+        lock (_lock)
+        {
+            currentIndex = Math.Max(0, _activeWindows.Count - 1);
+        }
+        var initialPos = NotificationPositioningService.CalculatePosition(workArea, approxSize, currentIndex);
+        window.Left = initialPos.X;
+        window.Top = initialPos.Y;
+
+        window.Show();
+    }
+
+    private void ReflowWindows()
+    {
+        var workArea = SystemParameters.WorkArea;
+        lock (_lock)
+        {
+            for (int i = 0; i < _activeWindows.Count; i++)
+            {
+                var win = _activeWindows[i];
+                var actualHeight = win.ActualHeight > 0 ? win.ActualHeight : 160;
+                var actualWidth = win.ActualWidth > 0 ? win.ActualWidth : 320;
+                var pos = NotificationPositioningService.CalculatePosition(workArea, new Size(actualWidth, actualHeight), i);
+                win.Left = pos.X;
+                win.Top = pos.Y;
+            }
         }
     }
 }

@@ -20,6 +20,7 @@ public class NotificationPresentationRequest
     public NotificationVisualCategory VisualCategory { get; }
     public double Opacity { get; }
     public IReadOnlyList<NotificationOpportunity> Opportunities { get; }
+    public string TaskTitle { get; }
 
     public NotificationPresentationRequest(
         Guid taskId,
@@ -30,7 +31,8 @@ public class NotificationPresentationRequest
         TimeSpan remaining,
         NotificationVisualCategory visualCategory,
         double opacity,
-        IEnumerable<NotificationOpportunity>? opportunities = null)
+        IEnumerable<NotificationOpportunity>? opportunities = null,
+        string taskTitle = "")
     {
         TaskId = taskId;
         OccurrenceId = occurrenceId;
@@ -41,6 +43,7 @@ public class NotificationPresentationRequest
         VisualCategory = visualCategory;
         Opacity = Math.Clamp(opacity, 0.0, 1.0);
         Opportunities = (opportunities?.ToList() ?? new List<NotificationOpportunity>()).AsReadOnly();
+        TaskTitle = taskTitle ?? string.Empty;
     }
 
     /// <summary>
@@ -60,6 +63,7 @@ public class NotificationPresentationRequest
             decision.Remaining,
             decision.VisualCategory,
             decision.Opacity,
-            decision.Opportunities);
+            decision.Opportunities,
+            decision.TaskTitle);
     }
 }
