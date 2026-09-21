@@ -7,7 +7,8 @@ namespace ListIt.Shell.Notifications;
 
 /// <summary>
 /// Lightweight desktop notification popup window.
-/// Pure presentation component displaying NotificationViewModel data with auto-close lifetime and Escape key handling.
+/// Pure presentation component displaying NotificationViewModel data with auto-close lifetime,
+/// interactive action commands (Work, Done, Dismiss), and Escape key handling.
 /// </summary>
 public partial class NotificationWindow : Window
 {
@@ -27,6 +28,7 @@ public partial class NotificationWindow : Window
 
         KeyDown += NotificationWindow_KeyDown;
         Closed += NotificationWindow_Closed;
+        ViewModel.RequestClose += ViewModel_RequestClose;
 
         if (lifetimeSeconds > 0)
         {
@@ -39,11 +41,23 @@ public partial class NotificationWindow : Window
         }
     }
 
+    private void ViewModel_RequestClose(object? sender, EventArgs e)
+    {
+        Close();
+    }
+
     private void NotificationWindow_KeyDown(object sender, KeyEventArgs e)
     {
         if (e.Key == Key.Escape)
         {
-            Close();
+            if (ViewModel.DismissCommand.CanExecute(null))
+            {
+                ViewModel.DismissCommand.Execute(null);
+            }
+            else
+            {
+                Close();
+            }
         }
     }
 
@@ -61,6 +75,7 @@ public partial class NotificationWindow : Window
             _lifetimeTimer.Tick -= LifetimeTimer_Tick;
         }
 
+        ViewModel.RequestClose -= ViewModel_RequestClose;
         KeyDown -= NotificationWindow_KeyDown;
         Closed -= NotificationWindow_Closed;
     }
