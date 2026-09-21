@@ -72,6 +72,18 @@
                     TickFrequency="1" IsSnapToTickEnabled="True"
                     Margin="0,0,0,8" />
 
+            <!-- Priority Suppression Bypass -->
+            <CheckBox IsChecked="{Binding BypassPrioritySuppression}"
+                      Foreground="#FFFFFF"
+                      Margin="0,0,0,2">
+                <TextBlock Text="Bypass priority suppression" Foreground="#FFFFFF" FontSize="11" />
+            </CheckBox>
+            <TextBlock Text="Allow notifications for this task even when lower-priority notifications are suppressed by a higher-priority task."
+                       Foreground="#71717A"
+                       FontSize="10"
+                       TextWrapping="Wrap"
+                       Margin="18,0,0,8" />
+
             <!-- Recurring Specific Section -->
             <StackPanel Visibility="{Binding IsRecurring, Converter={StaticResource BoolToVis}}">
                 <TextBlock Text="Assigned Times (HH:mm)" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />

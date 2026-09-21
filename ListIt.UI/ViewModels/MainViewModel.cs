@@ -12,12 +12,14 @@ namespace ListIt.UI.ViewModels;
 public class MainViewModel : ViewModelBase
 {
     private readonly ITaskService _taskService;
+    private readonly ListIt.Core.Scheduling.ISchedulingRuntime? _schedulingRuntime;
     private TaskItemViewModel? _selectedTask;
     private bool _isEditorOpen;
     private string? _errorMessage;
 
     public ObservableCollection<TaskItemViewModel> Tasks { get; } = new();
     public TaskEditorViewModel Editor { get; } = new();
+    public ListIt.Core.Scheduling.ISchedulingRuntime? SchedulingRuntime => _schedulingRuntime;
 
     public TaskItemViewModel? SelectedTask
     {
@@ -56,9 +58,10 @@ public class MainViewModel : ViewModelBase
     public Func<string, string, bool> ConfirmDeleteHandler { get; set; } =
         (message, title) => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
-    public MainViewModel(ITaskService taskService)
+    public MainViewModel(ITaskService taskService, ListIt.Core.Scheduling.ISchedulingRuntime? schedulingRuntime = null)
     {
         _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+        _schedulingRuntime = schedulingRuntime;
 
         OpenCreateTaskCommand = new RelayCommand(OpenCreateTask);
         OpenEditTaskCommand = new RelayCommand(OpenEditTask, () => SelectedTask != null);
@@ -67,6 +70,11 @@ public class MainViewModel : ViewModelBase
 
         Editor.TaskSaved += Editor_TaskSaved;
         Editor.Cancelled += Editor_Cancelled;
+
+        if (_schedulingRuntime != null)
+        {
+            _schedulingRuntime.StateEvaluated += SchedulingRuntime_StateEvaluated;
+        }
 
         LoadTasks();
     }
@@ -125,6 +133,7 @@ public class MainViewModel : ViewModelBase
             {
                 LoadTasks();
                 SelectedTask = null;
+                _schedulingRuntime?.EvaluateNow();
             }
             else
             {
@@ -151,20 +160,54 @@ public class MainViewModel : ViewModelBase
             {
                 if (task is RecurringTask recurring)
                 {
-                    _taskService.CreateRecurringTask(recurring.Title, recurring.AssignedTimes, recurring.Description, recurring.Urgency);
+                    _taskService.CreateRecurringTask(recurring.Title, recurring.AssignedTimes, recurring.Description, recurring.Urgency, recurring.BypassPrioritySuppression);
                 }
                 else if (task is FiniteTask finite)
                 {
-                    _taskService.CreateFiniteTask(finite.Title, finite.RequiredCompletions, finite.Description, finite.Urgency);
+                    _taskService.CreateFiniteTask(finite.Title, finite.RequiredCompletions, finite.Description, finite.Urgency, finite.DueAt, finite.BypassPrioritySuppression);
                 }
             }
 
             IsEditorOpen = false;
             LoadTasks();
+            _schedulingRuntime?.EvaluateNow();
         }
         catch (Exception ex)
         {
             ErrorMessage = $"Failed to save task: {ex.Message}";
+        }
+    }
+
+    private void SchedulingRuntime_StateEvaluated(object? sender, System.Collections.Generic.IReadOnlyList<ListIt.Core.Scheduling.EvaluatedOccurrence> evaluations)
+    {
+        void UpdateStates()
+        {
+            var evalMap = evaluations.GroupBy(e => e.Task.Id).ToDictionary(g => g.Key, g => g.ToList());
+            foreach (var taskItem in Tasks)
+            {
+                if (evalMap.TryGetValue(taskItem.Id, out var evals) && evals.Count > 0)
+                {
+                    var primary = evals.OrderBy(e => e.State switch
+                    {
+                        ListIt.Core.Scheduling.SchedulingState.Due => 0,
+                        ListIt.Core.Scheduling.SchedulingState.Overdue => 1,
+                        ListIt.Core.Scheduling.SchedulingState.Upcoming => 2,
+                        ListIt.Core.Scheduling.SchedulingState.Completed => 3,
+                        _ => 4
+                    }).First();
+
+                    taskItem.SchedulingState = primary.State;
+                }
+            }
+        }
+
+        if (Application.Current?.Dispatcher != null && !Application.Current.Dispatcher.CheckAccess())
+        {
+            Application.Current.Dispatcher.InvokeAsync(UpdateStates);
+        }
+        else
+        {
+            UpdateStates();
         }
     }
 

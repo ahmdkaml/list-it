@@ -27,16 +27,16 @@ public class TaskService : ITaskService
         return _repository.GetById(id);
     }
 
-    public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1)
+    public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false)
     {
-        var task = new RecurringTask(title, assignedTimes, description, urgency);
+        var task = new RecurringTask(title, assignedTimes, description, urgency, bypassPrioritySuppression);
         _repository.Add(task);
         return task;
     }
 
-    public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null)
+    public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false)
     {
-        var task = new FiniteTask(title, requiredCompletions, currentCompletions: 0, description, urgency, dueAt);
+        var task = new FiniteTask(title, requiredCompletions, currentCompletions: 0, description, urgency, dueAt, bypassPrioritySuppression);
         _repository.Add(task);
         return task;
     }

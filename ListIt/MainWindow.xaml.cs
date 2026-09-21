@@ -27,14 +27,20 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
-        // Composition root: Repository -> Service -> ViewModel
+        // Composition root: Repository -> Service -> Scheduling -> ViewModel
         var repository = new JsonTaskRepository();
         var taskService = new TaskService(repository);
-        var mainViewModel = new MainViewModel(taskService);
+        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
+        var scheduler = new ListIt.Core.Scheduling.Scheduler();
+        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(taskService);
+        var schedulingRuntime = new ListIt.Core.Scheduling.SchedulingRuntime(taskService, generator, scheduler, occurrenceService);
+        var mainViewModel = new MainViewModel(taskService, schedulingRuntime);
         DataContext = mainViewModel;
 
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
+        Loaded += (s, e) => schedulingRuntime.Start();
+        Closed += (s, e) => schedulingRuntime.Dispose();
     }
 
     private void MainWindow_SourceInitialized(object? sender, EventArgs e)
