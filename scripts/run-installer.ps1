@@ -40,6 +40,10 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "MSI: $MsiPath" -ForegroundColor White
 Write-Host "Log: $logPath" -ForegroundColor White
 
+# Ensure no instances of ListIt are running before installation starts
+Get-Process -Name ListIt -ErrorAction SilentlyContinue | Stop-Process -Force -ErrorAction SilentlyContinue
+Start-Sleep -Milliseconds 500
+
 $proc = Start-Process -FilePath "msiexec.exe" -ArgumentList $argsList -Wait -PassThru
 
 if ($proc.ExitCode -eq 0) {
