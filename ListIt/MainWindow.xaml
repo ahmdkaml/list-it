@@ -4,7 +4,7 @@
         xmlns:views="clr-namespace:ListIt.UI.Views;assembly=ListIt.UI"
         Title="ListIt"
         Height="440" Width="320"
-        WindowStartupLocation="CenterScreen"
+        WindowStartupLocation="Manual"
         ResizeMode="NoResize"
         WindowStyle="None"
         Background="#18181B"
