@@ -31,18 +31,18 @@ public class MainViewModelTests
 
         public TaskBase? GetTask(Guid id) => _tasks.FirstOrDefault(t => t.Id == id);
 
-        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1)
+        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false)
         {
             CreateRecurringCallCount++;
-            var task = new RecurringTask(title, assignedTimes, description, urgency);
+            var task = new RecurringTask(title, assignedTimes, description, urgency, bypassPrioritySuppression);
             _tasks.Add(task);
             return task;
         }
 
-        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null)
+        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false)
         {
             CreateFiniteCallCount++;
-            var task = new FiniteTask(title, requiredCompletions, 0, description, urgency, dueAt);
+            var task = new FiniteTask(title, requiredCompletions, 0, description, urgency, dueAt, bypassPrioritySuppression);
             _tasks.Add(task);
             return task;
         }

@@ -19,8 +19,9 @@ public class FiniteTask : TaskBase
         int currentCompletions = 0,
         string description = "",
         int urgency = 1,
-        DateTime? dueAt = null)
-        : base(title, description, urgency)
+        DateTime? dueAt = null,
+        bool bypassPrioritySuppression = false)
+        : base(title, description, urgency, bypassPrioritySuppression)
     {
         ValidateCompletions(requiredCompletions, currentCompletions);
         RequiredCompletions = requiredCompletions;
@@ -36,8 +37,9 @@ public class FiniteTask : TaskBase
         DateTime createdAt,
         int requiredCompletions,
         int currentCompletions,
-        DateTime? dueAt = null)
-        : base(id, title, description, urgency, createdAt)
+        DateTime? dueAt = null,
+        bool bypassPrioritySuppression = false)
+        : base(id, title, description, urgency, createdAt, bypassPrioritySuppression)
     {
         ValidateCompletions(requiredCompletions, currentCompletions);
         RequiredCompletions = requiredCompletions;

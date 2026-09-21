@@ -17,8 +17,9 @@ public class RecurringTask : TaskBase
         string title,
         IEnumerable<TimeOnly> assignedTimes,
         string description = "",
-        int urgency = 1)
-        : base(title, description, urgency)
+        int urgency = 1,
+        bool bypassPrioritySuppression = false)
+        : base(title, description, urgency, bypassPrioritySuppression)
     {
         AssignedTimes = ValidateAndNormalizeAssignedTimes(assignedTimes);
     }
@@ -29,8 +30,9 @@ public class RecurringTask : TaskBase
         string description,
         int urgency,
         DateTime createdAt,
-        IEnumerable<TimeOnly> assignedTimes)
-        : base(id, title, description, urgency, createdAt)
+        IEnumerable<TimeOnly> assignedTimes,
+        bool bypassPrioritySuppression = false)
+        : base(id, title, description, urgency, createdAt, bypassPrioritySuppression)
     {
         AssignedTimes = ValidateAndNormalizeAssignedTimes(assignedTimes);
     }

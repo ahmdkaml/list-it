@@ -264,4 +264,49 @@ public class TaskEditorViewModelTests
         Assert.False(wasSaved);
         Assert.NotNull(vm.ErrorMessage);
     }
+
+    [Fact]
+    public void LoadForCreate_SetsBypassPrioritySuppressionToFalse()
+    {
+        // Arrange & Act
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+
+        // Assert
+        Assert.False(vm.BypassPrioritySuppression);
+    }
+
+    [Fact]
+    public void LoadForEdit_SetsBypassPrioritySuppressionFromTask()
+    {
+        // Arrange
+        var task = new RecurringTask("Urgent", new[] { new TimeOnly(10, 0) }, bypassPrioritySuppression: true);
+        var vm = new TaskEditorViewModel();
+
+        // Act
+        vm.LoadForEdit(task);
+
+        // Assert
+        Assert.True(vm.BypassPrioritySuppression);
+    }
+
+    [Fact]
+    public void SaveCommand_PropagatesBypassPrioritySuppression_ToCreatedTask()
+    {
+        // Arrange
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+        vm.Title = "Bypass Enabled";
+        vm.BypassPrioritySuppression = true;
+
+        TaskBase? savedTask = null;
+        vm.TaskSaved += (s, t) => savedTask = t;
+
+        // Act
+        vm.SaveCommand.Execute(null);
+
+        // Assert
+        Assert.NotNull(savedTask);
+        Assert.True(savedTask.BypassPrioritySuppression);
+    }
 }

@@ -16,8 +16,8 @@ public class OccurrenceServiceTests
 
         public IReadOnlyList<TaskBase> GetAllTasks() => Array.Empty<TaskBase>();
         public TaskBase? GetTask(Guid id) => null;
-        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1) => throw new NotImplementedException();
-        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null) => throw new NotImplementedException();
+        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false) => throw new NotImplementedException();
+        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false) => throw new NotImplementedException();
 
         public void UpdateTask(TaskBase task)
         {

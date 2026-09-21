@@ -20,9 +20,16 @@ public class TaskEditorViewModel : ViewModelBase
     private string _newTimeString = "09:00";
     private int _requiredCompletions = 1;
     private string _finiteDueTimeString = string.Empty;
+    private bool _bypassPrioritySuppression;
     private string? _errorMessage;
 
     public ObservableCollection<TimeOnly> AssignedTimes { get; } = new();
+
+    public bool BypassPrioritySuppression
+    {
+        get => _bypassPrioritySuppression;
+        set => SetProperty(ref _bypassPrioritySuppression, value);
+    }
 
     public bool IsEditing
     {
@@ -132,6 +139,7 @@ public class TaskEditorViewModel : ViewModelBase
         NewTimeString = "09:00";
         RequiredCompletions = 1;
         FiniteDueTimeString = string.Empty;
+        BypassPrioritySuppression = false;
         ErrorMessage = null;
 
         AssignedTimes.Clear();
@@ -149,6 +157,7 @@ public class TaskEditorViewModel : ViewModelBase
         Title = task.Title;
         Description = task.Description;
         Urgency = task.Urgency;
+        BypassPrioritySuppression = task.BypassPrioritySuppression;
         ErrorMessage = null;
 
         AssignedTimes.Clear();
@@ -228,11 +237,11 @@ public class TaskEditorViewModel : ViewModelBase
 
                 if (IsEditing && ExistingTaskId.HasValue)
                 {
-                    resultTask = new RecurringTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, AssignedTimes);
+                    resultTask = new RecurringTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, AssignedTimes, BypassPrioritySuppression);
                 }
                 else
                 {
-                    resultTask = new RecurringTask(Title, AssignedTimes, Description, Urgency);
+                    resultTask = new RecurringTask(Title, AssignedTimes, Description, Urgency, BypassPrioritySuppression);
                 }
             }
             else
@@ -273,11 +282,11 @@ public class TaskEditorViewModel : ViewModelBase
                         return;
                     }
 
-                    resultTask = new FiniteTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, RequiredCompletions, _existingCurrentCompletions, dueAt);
+                    resultTask = new FiniteTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, RequiredCompletions, _existingCurrentCompletions, dueAt, BypassPrioritySuppression);
                 }
                 else
                 {
-                    resultTask = new FiniteTask(Title, RequiredCompletions, currentCompletions: 0, description: Description, urgency: Urgency, dueAt: dueAt);
+                    resultTask = new FiniteTask(Title, RequiredCompletions, currentCompletions: 0, description: Description, urgency: Urgency, dueAt: dueAt, bypassPrioritySuppression: BypassPrioritySuppression);
                 }
             }
 

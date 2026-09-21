@@ -11,6 +11,7 @@ public abstract class TaskBase
     public string Title { get; private set; }
     public string Description { get; private set; }
     public int Urgency { get; private set; }
+    public bool BypassPrioritySuppression { get; private set; }
     public DateTime CreatedAt { get; }
 
     /// <summary>
@@ -18,12 +19,12 @@ public abstract class TaskBase
     /// </summary>
     public abstract TaskType Type { get; }
 
-    protected TaskBase(string title, string description = "", int urgency = 1)
-        : this(Guid.NewGuid(), title, description, urgency, DateTime.UtcNow)
+    protected TaskBase(string title, string description = "", int urgency = 1, bool bypassPrioritySuppression = false)
+        : this(Guid.NewGuid(), title, description, urgency, DateTime.UtcNow, bypassPrioritySuppression)
     {
     }
 
-    protected TaskBase(Guid id, string title, string description, int urgency, DateTime createdAt)
+    protected TaskBase(Guid id, string title, string description, int urgency, DateTime createdAt, bool bypassPrioritySuppression = false)
     {
         if (id == Guid.Empty)
         {
@@ -40,6 +41,7 @@ public abstract class TaskBase
         Title = ValidateAndNormalizeTitle(title);
         Description = description ?? string.Empty;
         Urgency = ValidateUrgency(urgency);
+        BypassPrioritySuppression = bypassPrioritySuppression;
     }
 
     public void SetTitle(string title)
@@ -55,6 +57,11 @@ public abstract class TaskBase
     public void SetUrgency(int urgency)
     {
         Urgency = ValidateUrgency(urgency);
+    }
+
+    public void SetBypassPrioritySuppression(bool bypass)
+    {
+        BypassPrioritySuppression = bypass;
     }
 
     public void UpdateDetails(string title, string description)

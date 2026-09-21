@@ -80,6 +80,19 @@
                                         <Border Background="#3F3F46" CornerRadius="3" Padding="4,1" DockPanel.Dock="Right" Margin="4,0,0,0">
                                             <TextBlock Text="{Binding TypeDisplay}" Foreground="#D4D4D8" FontSize="9" FontWeight="SemiBold" />
                                         </Border>
+                                        <Border Background="#2563EB" CornerRadius="3" Padding="4,1" DockPanel.Dock="Right" Margin="4,0,0,0">
+                                            <Border.Style>
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Visibility" Value="Visible" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding StateDisplay}" Value="">
+                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                            <TextBlock Text="{Binding StateDisplay}" Foreground="#FFFFFF" FontSize="9" FontWeight="SemiBold" />
+                                        </Border>
                                         <TextBlock Text="{Binding Title}"
                                                    Foreground="#FFFFFF"
                                                    FontWeight="Bold"
@@ -89,11 +102,14 @@
 
                                     <!-- Details & Urgency -->
                                     <DockPanel Grid.Row="1" Margin="0,3,0,0">
-                                        <TextBlock Text="{Binding Urgency, StringFormat='Urgency: {0}'}"
-                                                   Foreground="#F59E0B"
-                                                   FontSize="10"
-                                                   FontWeight="SemiBold"
-                                                   DockPanel.Dock="Right" />
+                                        <StackPanel Orientation="Horizontal" DockPanel.Dock="Right">
+                                            <TextBlock Text="[Bypass] " Foreground="#38BDF8" FontSize="9" FontWeight="SemiBold"
+                                                       Visibility="{Binding BypassPrioritySuppression, Converter={StaticResource BoolToVis}}" />
+                                            <TextBlock Text="{Binding Urgency, StringFormat='Urgency: {0}'}"
+                                                       Foreground="#F59E0B"
+                                                       FontSize="10"
+                                                       FontWeight="SemiBold" />
+                                        </StackPanel>
                                         <TextBlock Text="{Binding DetailsDisplay}"
                                                    Foreground="#A1A1AA"
                                                    FontSize="10" />

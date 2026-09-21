@@ -14,6 +14,7 @@ internal abstract class TaskDto
     public string Title { get; set; } = string.Empty;
     public string Description { get; set; } = string.Empty;
     public int Urgency { get; set; }
+    public bool BypassPrioritySuppression { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public abstract TaskBase ToDomain();
@@ -28,6 +29,7 @@ internal abstract class TaskDto
                 Title = recurring.Title,
                 Description = recurring.Description,
                 Urgency = recurring.Urgency,
+                BypassPrioritySuppression = recurring.BypassPrioritySuppression,
                 CreatedAt = recurring.CreatedAt,
                 AssignedTimes = new List<TimeOnly>(recurring.AssignedTimes)
             },
@@ -37,6 +39,7 @@ internal abstract class TaskDto
                 Title = finite.Title,
                 Description = finite.Description,
                 Urgency = finite.Urgency,
+                BypassPrioritySuppression = finite.BypassPrioritySuppression,
                 CreatedAt = finite.CreatedAt,
                 RequiredCompletions = finite.RequiredCompletions,
                 CurrentCompletions = finite.CurrentCompletions,
@@ -53,7 +56,7 @@ internal class RecurringTaskDto : TaskDto
 
     public override TaskBase ToDomain()
     {
-        return new RecurringTask(Id, Title, Description, Urgency, CreatedAt, AssignedTimes);
+        return new RecurringTask(Id, Title, Description, Urgency, CreatedAt, AssignedTimes, BypassPrioritySuppression);
     }
 }
 
@@ -66,6 +69,6 @@ internal class FiniteTaskDto : TaskDto
     public override TaskBase ToDomain()
     {
         DateTime? dueAt = DueAt == default ? null : DueAt;
-        return new FiniteTask(Id, Title, Description, Urgency, CreatedAt, RequiredCompletions, CurrentCompletions, dueAt);
+        return new FiniteTask(Id, Title, Description, Urgency, CreatedAt, RequiredCompletions, CurrentCompletions, dueAt, BypassPrioritySuppression);
     }
 }

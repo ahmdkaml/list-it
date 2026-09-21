@@ -18,7 +18,23 @@ public class TaskItemViewModel : ViewModelBase
     public string Title => _task.Title;
     public string Description => _task.Description;
     public int Urgency => _task.Urgency;
+    public bool BypassPrioritySuppression => _task.BypassPrioritySuppression;
     public TaskType Type => _task.Type;
+
+    private ListIt.Core.Scheduling.SchedulingState? _schedulingState;
+    public ListIt.Core.Scheduling.SchedulingState? SchedulingState
+    {
+        get => _schedulingState;
+        set
+        {
+            if (SetProperty(ref _schedulingState, value))
+            {
+                OnPropertyChanged(nameof(StateDisplay));
+            }
+        }
+    }
+
+    public string StateDisplay => SchedulingState.HasValue ? SchedulingState.Value.ToString() : string.Empty;
 
     public string TypeDisplay => _task.Type switch
     {
