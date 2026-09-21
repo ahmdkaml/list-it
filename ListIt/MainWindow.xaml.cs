@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel;
 using System.Windows;
 using System.Windows.Input;
 using ListIt.Core.Scheduling;
@@ -17,6 +18,7 @@ namespace ListIt;
 public partial class MainWindow : Window
 {
     private readonly DesktopShellBox _shellBox;
+    private bool _isExplicitShutdown;
 
     public MainWindow() : this(new DesktopShellBox())
     {
@@ -40,6 +42,7 @@ public partial class MainWindow : Window
 
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
+        Closing += MainWindow_Closing;
     }
 
     private static ITaskService CreateDefaultTaskService(out ISchedulingRuntime schedulingRuntime)
@@ -60,7 +63,46 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        _shellBox.CenterAndPinToBottom(this);
+        _shellBox.PositionLowerRightAndPin(this);
+    }
+
+    private void MainWindow_Closing(object? sender, CancelEventArgs e)
+    {
+        // When user/window close is requested, hide the window rather than destroying it
+        // so background SchedulerRuntime continues running
+        if (!_isExplicitShutdown)
+        {
+            e.Cancel = true;
+            Hide();
+        }
+    }
+
+    /// <summary>
+    /// Restores the window from hidden/minimized state and activates it in the foreground.
+    /// </summary>
+    public void RestoreAndActivate()
+    {
+        if (!IsVisible)
+        {
+            Show();
+        }
+
+        if (WindowState == WindowState.Minimized)
+        {
+            WindowState = WindowState.Normal;
+        }
+
+        Activate();
+        Focus();
+    }
+
+    /// <summary>
+    /// Explicitly closes the window for application shutdown.
+    /// </summary>
+    public void ShutdownAndClose()
+    {
+        _isExplicitShutdown = true;
+        Close();
     }
 
     private void ShellDragGrip_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)

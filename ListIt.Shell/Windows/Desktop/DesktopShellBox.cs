@@ -52,6 +52,24 @@ public class DesktopShellBox
     }
 
     /// <summary>
+    /// Positions the window in the lower-right corner of the usable work area and pins it to the bottom of the Z-order.
+    /// </summary>
+    public void PositionLowerRightAndPin(Window window, double margin = 16.0)
+    {
+        if (window == null) return;
+
+        var pos = DesktopPositioningService.CalculateLowerRightPosition(
+            SystemParameters.WorkArea,
+            new Size(window.Width, window.Height),
+            margin);
+
+        window.Left = pos.X;
+        window.Top = pos.Y;
+
+        _shellAnchorService.SendToBottom(window);
+    }
+
+    /// <summary>
     /// Handles window drag-move operations and ensures the window stays pinned to the bottom Z-order upon release.
     /// </summary>
     public void HandleDrag(Window window)
