@@ -177,4 +177,146 @@ public class MainViewModelTests
         Assert.Single(vm.Tasks);
         Assert.Equal("New Task", vm.Tasks[0].Title);
     }
+
+    [Fact]
+    public void WorkTaskCommand_StartsAndStopsWorking_WhenOccurrencePending()
+    {
+        // Arrange
+        var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
+        var service = new FakeTaskService();
+        service.CreateRecurringTask("Morning Review", new[] { new TimeOnly(9, 0) });
+
+        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
+        var scheduler = new ListIt.Core.Scheduling.Scheduler();
+        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(service);
+        using var runtime = new ListIt.Core.Scheduling.SchedulingRuntime(
+            service, generator, scheduler, occurrenceService, clock: () => testTime);
+
+        var vm = new MainViewModel(service, runtime);
+        runtime.EvaluateNow(testTime);
+        vm.SyncEvaluatedStates();
+
+        var item = vm.Tasks[0];
+        vm.SelectedTask = item;
+
+        Assert.False(item.IsWorking);
+        Assert.Equal("Work", vm.WorkButtonText);
+        Assert.True(vm.CanWorkSelectedTask);
+
+        // Act 1: Start Work
+        vm.WorkTaskCommand.Execute(null);
+
+        // Assert 1
+        Assert.True(item.IsWorking);
+        Assert.Equal("Working", item.StateDisplay);
+        Assert.Equal("Stop", vm.WorkButtonText);
+        Assert.Equal("Stop", item.WorkActionText);
+
+        // Act 2: Stop Work
+        vm.WorkTaskCommand.Execute(null);
+
+        // Assert 2
+        Assert.False(item.IsWorking);
+        Assert.Equal("Work", vm.WorkButtonText);
+        Assert.Equal("Work", item.WorkActionText);
+        Assert.Equal("Due", item.StateDisplay);
+    }
+
+    [Fact]
+    public void DoneTaskCommand_RecurringTask_CompletesOccurrence()
+    {
+        // Arrange
+        var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
+        var service = new FakeTaskService();
+        service.CreateRecurringTask("Daily Sync", new[] { new TimeOnly(9, 0) });
+
+        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
+        var scheduler = new ListIt.Core.Scheduling.Scheduler();
+        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(service);
+        using var runtime = new ListIt.Core.Scheduling.SchedulingRuntime(
+            service, generator, scheduler, occurrenceService, clock: () => testTime);
+
+        var vm = new MainViewModel(service, runtime);
+        runtime.EvaluateNow(testTime);
+        vm.SyncEvaluatedStates();
+
+        vm.SelectedTask = vm.Tasks[0];
+        Assert.True(vm.CanCompleteSelectedTask);
+
+        // Act
+        vm.DoneTaskCommand.Execute(null);
+
+        // Assert
+        Assert.Single(vm.Tasks);
+        Assert.False(vm.Tasks[0].IsWorking);
+        Assert.Equal(ListIt.Core.Scheduling.SchedulingState.Completed, vm.Tasks[0].SchedulingState);
+        Assert.Equal("Completed", vm.Tasks[0].StateDisplay);
+        Assert.False(vm.CanCompleteSelectedTask);
+    }
+
+    [Fact]
+    public void DoneTaskCommand_FiniteTask_DeletesTaskWhenAllCompletionsMet()
+    {
+        // Arrange
+        var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
+        var service = new FakeTaskService();
+        service.CreateFiniteTask("Finish Report", requiredCompletions: 1, dueAt: testTime);
+
+        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
+        var scheduler = new ListIt.Core.Scheduling.Scheduler();
+        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(service);
+        using var runtime = new ListIt.Core.Scheduling.SchedulingRuntime(
+            service, generator, scheduler, occurrenceService, clock: () => testTime);
+
+        var vm = new MainViewModel(service, runtime);
+        runtime.EvaluateNow(testTime);
+        vm.SyncEvaluatedStates();
+
+        vm.SelectedTask = vm.Tasks[0];
+        Assert.True(vm.CanCompleteSelectedTask);
+
+        // Act
+        vm.DoneTaskCommand.Execute(null);
+
+        // Assert: Task should be deleted from service and collection
+        Assert.Empty(vm.Tasks);
+        Assert.Null(vm.SelectedTask);
+        Assert.Equal(1, service.DeleteCallCount);
+    }
+
+    [Fact]
+    public void Commands_WithParameter_ExecuteOnSpecifiedItemWithoutPriorSelection()
+    {
+        // Arrange
+        var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
+        var service = new FakeTaskService();
+        service.CreateRecurringTask("Task 1", new[] { new TimeOnly(9, 0) });
+        service.CreateRecurringTask("Task 2", new[] { new TimeOnly(9, 0) });
+
+        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
+        var scheduler = new ListIt.Core.Scheduling.Scheduler();
+        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(service);
+        using var runtime = new ListIt.Core.Scheduling.SchedulingRuntime(
+            service, generator, scheduler, occurrenceService, clock: () => testTime);
+
+        var vm = new MainViewModel(service, runtime);
+        runtime.EvaluateNow(testTime);
+        vm.SyncEvaluatedStates();
+
+        Assert.Null(vm.SelectedTask);
+
+        // Act 1: Start work on Task 2 via command parameter
+        vm.WorkTaskCommand.Execute(vm.Tasks[1]);
+
+        // Assert 1
+        Assert.False(vm.Tasks[0].IsWorking);
+        Assert.True(vm.Tasks[1].IsWorking);
+
+        // Act 2: Complete Task 1 via command parameter
+        vm.DoneTaskCommand.Execute(vm.Tasks[0]);
+
+        // Assert 2
+        Assert.Equal(ListIt.Core.Scheduling.SchedulingState.Completed, vm.Tasks[0].SchedulingState);
+        Assert.True(vm.Tasks[1].IsWorking);
+    }
 }
