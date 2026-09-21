@@ -1,4 +1,5 @@
 <Solution>
   <Project Path="ListIt.Installer/ListIt.Installer.csproj" />
+  <Project Path="ListIt.Tests/ListIt.Tests.csproj" />
   <Project Path="ListIt/ListIt.csproj" />
 </Solution>
