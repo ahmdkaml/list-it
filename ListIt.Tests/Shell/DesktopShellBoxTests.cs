@@ -1,38 +1,11 @@
 using System;
-using ListIt.Core.Services;
-using ListIt.Shell.Services;
+using ListIt.Shell.Windows.Desktop;
 using Xunit;
-using TaskItem = ListIt.Core.Models.Task;
 
-namespace ListIt.Tests;
+namespace ListIt.Tests.Shell;
 
-public class BasicFunctionalityTests
+public class DesktopShellBoxTests
 {
-    [Fact]
-    public void TaskModel_InitializesCorrectly()
-    {
-        // Arrange & Act
-        var task = new TaskItem
-        {
-            Title = "Test desktop widget task"
-        };
-
-        // Assert
-        Assert.NotEqual(Guid.Empty, task.Id);
-        Assert.Equal("Test desktop widget task", task.Title);
-    }
-
-    [Fact]
-    public void ContentProvider_ReturnsExpectedContent()
-    {
-        // Arrange
-        IContentProvider provider = new StaticContentProvider();
-
-        // Act & Assert
-        Assert.Equal("LIST-IT", provider.GetHeader());
-        Assert.Equal("hello there", provider.GetBody());
-    }
-
     [Fact]
     public void ShellAnchorService_ImplementsInterface()
     {

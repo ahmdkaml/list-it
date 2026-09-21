@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace ListIt.Shell.Services;
+namespace ListIt.Shell.Windows.Desktop;
 
 /// <summary>
 /// Windows OS implementation of IShellAnchorService.

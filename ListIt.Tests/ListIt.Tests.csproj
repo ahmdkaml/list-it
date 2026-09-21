@@ -24,6 +24,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\ListIt.Core\ListIt.Core.csproj" />
+    <ProjectReference Include="..\ListIt.Infrastructure\ListIt.Infrastructure.csproj" />
+    <ProjectReference Include="..\ListIt.UI\ListIt.UI.csproj" />
+    <ProjectReference Include="..\ListIt.Shell\ListIt.Shell.csproj" />
     <ProjectReference Include="..\ListIt\ListIt.csproj" />
   </ItemGroup>
 

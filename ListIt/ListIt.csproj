@@ -6,8 +6,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
-    <Version>1.0.24</Version>
-    <FileVersion>1.0.24.0</FileVersion>
+    <Version>1.0.25</Version>
+    <FileVersion>1.0.25.0</FileVersion>
 
     <!-- Precompile to native machine code for instant startup -->
     <PublishReadyToRun>true</PublishReadyToRun>
@@ -18,5 +18,12 @@
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
     <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
   </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ListIt.Core\ListIt.Core.csproj" />
+    <ProjectReference Include="..\ListIt.Infrastructure\ListIt.Infrastructure.csproj" />
+    <ProjectReference Include="..\ListIt.UI\ListIt.UI.csproj" />
+    <ProjectReference Include="..\ListIt.Shell\ListIt.Shell.csproj" />
+  </ItemGroup>
 
 </Project>
