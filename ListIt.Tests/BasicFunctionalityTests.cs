@@ -1,7 +1,8 @@
 using System;
-using ListIt.Services;
+using ListIt.Core.Services;
+using ListIt.Shell.Services;
 using Xunit;
-using TaskItem = ListIt.Models.Task;
+using TaskItem = ListIt.Core.Models.Task;
 
 namespace ListIt.Tests;
 
@@ -19,6 +20,17 @@ public class BasicFunctionalityTests
         // Assert
         Assert.NotEqual(Guid.Empty, task.Id);
         Assert.Equal("Test desktop widget task", task.Title);
+    }
+
+    [Fact]
+    public void ContentProvider_ReturnsExpectedContent()
+    {
+        // Arrange
+        IContentProvider provider = new StaticContentProvider();
+
+        // Act & Assert
+        Assert.Equal("LIST-IT", provider.GetHeader());
+        Assert.Equal("hello there", provider.GetBody());
     }
 
     [Fact]

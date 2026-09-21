@@ -1,7 +1,7 @@
 <Window x:Class="ListIt.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:local="clr-namespace:ListIt"
+        xmlns:views="clr-namespace:ListIt.UI.Views"
         Title="ListIt"
         Height="140" Width="240"
         WindowStartupLocation="CenterScreen"
@@ -22,6 +22,6 @@
             MouseLeftButtonDown="ShellDragGrip_MouseLeftButtonDown">
 
         <!-- App UI View: Normal mouse interaction for all inner controls -->
-        <local:AppView />
+        <views:AppView />
     </Border>
 </Window>

@@ -1,7 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
-using ListIt.Services;
+using ListIt.Shell.Services;
 
 namespace ListIt;
 

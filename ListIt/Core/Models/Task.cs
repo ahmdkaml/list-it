@@ -1,4 +1,4 @@
-namespace ListIt.Models;
+namespace ListIt.Core.Models;
 
 public class Task
 {
