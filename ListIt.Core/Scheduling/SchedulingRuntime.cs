@@ -229,6 +229,14 @@ public class SchedulingRuntime : ISchedulingRuntime
         }
     }
 
+    public TaskOccurrence? GetOccurrence(Guid occurrenceId)
+    {
+        lock (_lock)
+        {
+            return _trackedOccurrences.Values.FirstOrDefault(o => o.OccurrenceId == occurrenceId);
+        }
+    }
+
     public void Dispose()
     {
         Stop();

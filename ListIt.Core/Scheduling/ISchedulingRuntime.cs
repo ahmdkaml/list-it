@@ -25,4 +25,5 @@ public interface ISchedulingRuntime : IDisposable
     void MarkOccurrenceMissed(TaskOccurrence occurrence);
 
     IReadOnlyList<EvaluatedOccurrence> GetOccurrencesForTask(Guid taskId);
+    TaskOccurrence? GetOccurrence(Guid occurrenceId);
 }

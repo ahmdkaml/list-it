@@ -1,4 +1,6 @@
 using System;
+using System.Linq;
+using System.Windows.Input;
 using System.Windows.Media;
 using ListIt.Core.Notifications;
 
@@ -6,10 +8,14 @@ namespace ListIt.Shell.Notifications;
 
 /// <summary>
 /// Presentation ViewModel for NotificationWindow.
-/// Formats structured NotificationPresentationRequest data for WPF XAML binding.
+/// Formats structured NotificationPresentationRequest data for WPF XAML binding
+/// and routes user interactions to INotificationActionHandler.
 /// </summary>
 public class NotificationViewModel
 {
+    private readonly INotificationActionHandler? _actionHandler;
+    private bool _isProcessing;
+
     public Guid TaskId { get; }
     public Guid OccurrenceId { get; }
     public string Title { get; }
@@ -24,6 +30,7 @@ public class NotificationViewModel
     public NotificationVisualCategory VisualCategory { get; }
     public string CategoryBadgeText => VisualCategory.ToString().ToUpperInvariant();
     public double Opacity { get; }
+    public int? OpportunityIndex { get; }
 
     public Brush AccentBrush { get; }
     public Brush BackgroundBrush { get; }
@@ -32,9 +39,31 @@ public class NotificationViewModel
     public Brush TextSecondaryBrush { get; }
     public Brush ButtonBackgroundBrush { get; }
 
-    public NotificationViewModel(NotificationPresentationRequest request)
+    public ICommand WorkCommand { get; }
+    public ICommand DoneCommand { get; }
+    public ICommand DismissCommand { get; }
+
+    public event EventHandler? RequestClose;
+
+    public bool IsProcessing
+    {
+        get => _isProcessing;
+        private set
+        {
+            _isProcessing = value;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+
+    public bool CanInteract => !IsProcessing;
+
+    public NotificationViewModel(
+        NotificationPresentationRequest request,
+        INotificationActionHandler? actionHandler = null)
     {
         if (request == null) throw new ArgumentNullException(nameof(request));
+
+        _actionHandler = actionHandler;
 
         TaskId = request.TaskId;
         OccurrenceId = request.OccurrenceId;
@@ -45,6 +74,7 @@ public class NotificationViewModel
         SkipCount = request.SkipCount;
         VisualCategory = request.VisualCategory;
         Opacity = request.Opacity;
+        OpportunityIndex = request.Opportunities.FirstOrDefault()?.OpportunityIndex;
 
         AccentBrush = GetAccentBrush(request.VisualCategory);
         BackgroundBrush = new SolidColorBrush(Color.FromRgb(0x1E, 0x1E, 0x2E));       // Dark card background
@@ -59,6 +89,43 @@ public class NotificationViewModel
         TextPrimaryBrush.Freeze();
         TextSecondaryBrush.Freeze();
         ButtonBackgroundBrush.Freeze();
+
+        WorkCommand = new ActionCommand(() => ExecuteAction(NotificationAction.Work), () => !IsProcessing);
+        DoneCommand = new ActionCommand(() => ExecuteAction(NotificationAction.Done), () => !IsProcessing);
+        DismissCommand = new ActionCommand(() => ExecuteAction(NotificationAction.Dismiss), () => !IsProcessing);
+    }
+
+    private void ExecuteAction(NotificationAction action)
+    {
+        if (_isProcessing) return;
+        IsProcessing = true;
+
+        try
+        {
+            if (_actionHandler != null)
+            {
+                var context = new NotificationActionContext(
+                    TaskId,
+                    OccurrenceId,
+                    action,
+                    OpportunityIndex,
+                    DateTime.UtcNow);
+
+                var result = _actionHandler.Handle(context);
+                if (result.ShouldClosePopup)
+                {
+                    RequestClose?.Invoke(this, EventArgs.Empty);
+                }
+            }
+            else
+            {
+                RequestClose?.Invoke(this, EventArgs.Empty);
+            }
+        }
+        finally
+        {
+            IsProcessing = false;
+        }
     }
 
     private static SolidColorBrush GetAccentBrush(NotificationVisualCategory category)

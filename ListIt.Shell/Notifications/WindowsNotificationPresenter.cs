@@ -10,13 +10,14 @@ namespace ListIt.Shell.Notifications;
 /// Windows-specific notification delivery adapter.
 /// Translates platform-independent NotificationDecision models into presentation requests,
 /// isolates UI-thread dispatch, manages bottom-right window positioning and vertical stacking,
-/// and protects the application runtime against presentation failures.
+/// routes interaction to INotificationActionHandler, and protects the application runtime against presentation failures.
 /// </summary>
 public class WindowsNotificationPresenter : INotificationPresenter
 {
     private readonly Action<Action> _uiDispatcher;
     private readonly Action<NotificationPresentationRequest>? _onDisplayRequested;
     private readonly double _lifetimeSeconds;
+    private readonly INotificationActionHandler? _actionHandler;
     private readonly List<NotificationPresentationRequest> _activeRequests = new();
     private readonly List<NotificationWindow> _activeWindows = new();
     private readonly object _lock = new();
@@ -46,7 +47,8 @@ public class WindowsNotificationPresenter : INotificationPresenter
     public WindowsNotificationPresenter(
         Action<Action>? uiDispatcher = null,
         Action<NotificationPresentationRequest>? onDisplayRequested = null,
-        double lifetimeSeconds = NotificationWindow.DefaultLifetimeSeconds)
+        double lifetimeSeconds = NotificationWindow.DefaultLifetimeSeconds,
+        INotificationActionHandler? actionHandler = null)
     {
         _uiDispatcher = uiDispatcher ?? (action =>
         {
@@ -62,6 +64,7 @@ public class WindowsNotificationPresenter : INotificationPresenter
 
         _onDisplayRequested = onDisplayRequested;
         _lifetimeSeconds = lifetimeSeconds;
+        _actionHandler = actionHandler;
     }
 
     public void Present(NotificationDecision decision)
@@ -110,7 +113,7 @@ public class WindowsNotificationPresenter : INotificationPresenter
 
     private void DisplayWindow(NotificationPresentationRequest request)
     {
-        var viewModel = new NotificationViewModel(request);
+        var viewModel = new NotificationViewModel(request, _actionHandler);
         var window = new NotificationWindow(viewModel, _lifetimeSeconds);
 
         lock (_lock)
