@@ -111,6 +111,12 @@ public class WindowsNotificationPresenter : INotificationPresenter
         }
     }
 
+    public Task PresentAsync(NotificationDecision decision)
+    {
+        Present(decision);
+        return Task.CompletedTask;
+    }
+
     private void DisplayWindow(NotificationPresentationRequest request)
     {
         var viewModel = new NotificationViewModel(request, _actionHandler);

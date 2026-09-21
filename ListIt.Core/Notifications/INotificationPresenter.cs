@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 
 namespace ListIt.Core.Notifications;
 
@@ -9,4 +10,10 @@ namespace ListIt.Core.Notifications;
 public interface INotificationPresenter
 {
     void Present(NotificationDecision decision);
+
+    Task PresentAsync(NotificationDecision decision)
+    {
+        Present(decision);
+        return Task.CompletedTask;
+    }
 }
