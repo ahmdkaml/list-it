@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using System.Windows;
 using System.Windows.Interop;
 
-namespace ListIt.Shell.Services;
+namespace ListIt.Shell.Windows.Desktop;
 
 /// <summary>
 /// Encapsulates desktop shell management, screen positioning, and window drag handling.

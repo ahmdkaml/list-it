@@ -8,4 +8,8 @@
     <RootNamespace>ListIt.UI</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ListIt.Core\ListIt.Core.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -10,7 +10,7 @@
              MouseLeftButtonDown="AppView_MouseLeftButtonDown">
 
     <UserControl.Resources>
-        <ResourceDictionary Source="/ListIt;component/UI/Styles/WidgetStyles.xaml" />
+        <ResourceDictionary Source="/ListIt.UI;component/Styles/WidgetStyles.xaml" />
     </UserControl.Resources>
 
     <Grid VerticalAlignment="Center">

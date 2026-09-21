@@ -3,7 +3,7 @@
 
   <Package Name="List-it"
            Manufacturer="List-it"
-           Version="1.0.24"
+           Version="1.0.25"
            UpgradeCode="edcb382f-f182-43d2-b1bf-ba6f887bce02">
 
     <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
