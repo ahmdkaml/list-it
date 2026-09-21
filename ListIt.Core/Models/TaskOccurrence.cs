@@ -12,6 +12,7 @@ public class TaskOccurrence
     public Guid TaskId { get; }
     public DateTime ScheduledAt { get; }
     public OccurrenceStatus Status { get; private set; }
+    public bool IsWorking { get; private set; }
 
     /// <summary>
     /// Deterministic logical key identifying the occurrence by parent task and scheduled time.
@@ -48,6 +49,27 @@ public class TaskOccurrence
         TaskId = taskId;
         ScheduledAt = scheduledAt;
         Status = status;
+        IsWorking = false;
+    }
+
+    public void StartWorking()
+    {
+        if (Status != OccurrenceStatus.Pending)
+        {
+            throw new InvalidOperationException($"Cannot start working on an occurrence with status '{Status}'. Only Pending occurrences can be worked on.");
+        }
+
+        IsWorking = true;
+    }
+
+    public void StopWorking()
+    {
+        if (Status != OccurrenceStatus.Pending)
+        {
+            throw new InvalidOperationException($"Cannot stop working on an occurrence with status '{Status}'. Only Pending occurrences can be updated.");
+        }
+
+        IsWorking = false;
     }
 
     public void Complete()
@@ -58,6 +80,7 @@ public class TaskOccurrence
         }
 
         Status = OccurrenceStatus.Completed;
+        IsWorking = false;
     }
 
     public void MarkMissed()
@@ -68,5 +91,6 @@ public class TaskOccurrence
         }
 
         Status = OccurrenceStatus.Missed;
+        IsWorking = false;
     }
 }
