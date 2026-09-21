@@ -17,6 +17,7 @@ public class NotificationDecision
     public TimeSpan Remaining { get; }
     public NotificationVisualCategory VisualCategory { get; }
     public double Opacity { get; }
+    public NotificationSuppressionResult? SuppressionResult { get; }
 
     public NotificationDecision(
         bool shouldNotify,
@@ -27,7 +28,8 @@ public class NotificationDecision
         TimeSpan elapsed,
         TimeSpan remaining,
         NotificationVisualCategory visualCategory,
-        double opacity)
+        double opacity,
+        NotificationSuppressionResult? suppressionResult = null)
     {
         ShouldNotify = shouldNotify;
         TaskId = taskId;
@@ -38,6 +40,7 @@ public class NotificationDecision
         Remaining = remaining;
         VisualCategory = visualCategory;
         Opacity = opacity;
+        SuppressionResult = suppressionResult;
     }
 
     /// <summary>
@@ -51,7 +54,8 @@ public class NotificationDecision
         TimeSpan elapsed = default,
         TimeSpan remaining = default,
         NotificationVisualCategory visualCategory = NotificationVisualCategory.Low,
-        double opacity = 0.0)
+        double opacity = 0.0,
+        NotificationSuppressionResult? suppressionResult = null)
     {
         return new NotificationDecision(
             shouldNotify: false,
@@ -62,7 +66,8 @@ public class NotificationDecision
             elapsed: elapsed,
             remaining: remaining,
             visualCategory: visualCategory,
-            opacity: opacity);
+            opacity: opacity,
+            suppressionResult: suppressionResult);
     }
 
     /// <summary>
@@ -76,7 +81,8 @@ public class NotificationDecision
         TimeSpan elapsed,
         TimeSpan remaining,
         NotificationVisualCategory visualCategory,
-        double opacity = 1.0)
+        double opacity = 1.0,
+        NotificationSuppressionResult? suppressionResult = null)
     {
         return new NotificationDecision(
             shouldNotify: true,
@@ -87,6 +93,7 @@ public class NotificationDecision
             elapsed: elapsed,
             remaining: remaining,
             visualCategory: visualCategory,
-            opacity: opacity);
+            opacity: opacity,
+            suppressionResult: suppressionResult);
     }
 }
