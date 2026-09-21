@@ -34,7 +34,37 @@ public class TaskItemViewModel : ViewModelBase
         }
     }
 
-    public string StateDisplay => SchedulingState.HasValue ? SchedulingState.Value.ToString() : string.Empty;
+    private bool _isWorking;
+    public bool IsWorking
+    {
+        get => _isWorking;
+        set
+        {
+            if (SetProperty(ref _isWorking, value))
+            {
+                OnPropertyChanged(nameof(StateDisplay));
+                OnPropertyChanged(nameof(WorkActionText));
+            }
+        }
+    }
+
+    private bool _hasPendingOccurrence;
+    public bool HasPendingOccurrence
+    {
+        get => _hasPendingOccurrence;
+        set => SetProperty(ref _hasPendingOccurrence, value);
+    }
+
+    public string WorkActionText => IsWorking ? "Stop" : "Work";
+
+    public string StateDisplay
+    {
+        get
+        {
+            if (IsWorking) return "Working";
+            return SchedulingState.HasValue ? SchedulingState.Value.ToString() : string.Empty;
+        }
+    }
 
     public string TypeDisplay => _task.Type switch
     {
