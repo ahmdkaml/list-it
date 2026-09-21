@@ -1,4 +1,6 @@
 using System;
+using ListIt.Core.Models;
+using ListIt.Core.Scheduling;
 
 namespace ListIt.Core.Notifications;
 
@@ -37,6 +39,22 @@ public class NotificationEngine : INotificationEngine
             ? context.ScheduledAt - context.CurrentTime
             : TimeSpan.Zero;
 
+        // Terminal occurrences or upcoming occurrences never produce notification output
+        if (context.Occurrence.Status is OccurrenceStatus.Completed or OccurrenceStatus.Missed ||
+            context.SchedulingState == SchedulingState.Upcoming ||
+            context.CurrentTime < context.ScheduledAt)
+        {
+            return NotificationDecision.DoNotNotify(
+                taskId: context.TaskId,
+                occurrenceId: context.OccurrenceId,
+                urgency: context.Urgency,
+                skipCount: context.SkipCount,
+                elapsed: elapsed,
+                remaining: remaining,
+                visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
+                opacity: 0.0);
+        }
+
         // 1. Evaluate time-based eligibility
         var timingResult = _timingPolicy.Evaluate(context, _history);
         if (!timingResult.ShouldNotify || timingResult.EligibleOpportunities.Count == 0)
@@ -47,7 +65,10 @@ public class NotificationEngine : INotificationEngine
                 urgency: context.Urgency,
                 skipCount: context.SkipCount,
                 elapsed: elapsed,
-                remaining: remaining);
+                remaining: remaining,
+                visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
+                opacity: 0.0,
+                opportunities: timingResult.EligibleOpportunities);
         }
 
         NotificationDecision? presentationDecision = null;
@@ -72,7 +93,18 @@ public class NotificationEngine : INotificationEngine
 
         if (presentationDecision != null)
         {
-            return presentationDecision;
+            return new NotificationDecision(
+                shouldNotify: true,
+                taskId: presentationDecision.TaskId,
+                occurrenceId: presentationDecision.OccurrenceId,
+                urgency: presentationDecision.Urgency,
+                skipCount: presentationDecision.SkipCount,
+                elapsed: presentationDecision.Elapsed,
+                remaining: presentationDecision.Remaining,
+                visualCategory: presentationDecision.VisualCategory,
+                opacity: presentationDecision.Opacity,
+                suppressionResult: presentationDecision.SuppressionResult,
+                opportunities: timingResult.EligibleOpportunities);
         }
 
         return NotificationDecision.DoNotNotify(
@@ -84,6 +116,7 @@ public class NotificationEngine : INotificationEngine
             remaining: remaining,
             visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
             opacity: 0.0,
-            suppressionResult: lastSuppression);
+            suppressionResult: lastSuppression,
+            opportunities: timingResult.EligibleOpportunities);
     }
 }
