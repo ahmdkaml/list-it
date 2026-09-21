@@ -1,6 +1,7 @@
 using System;
 using System.Windows;
 using System.Windows.Input;
+using ListIt.Core.Scheduling;
 using ListIt.Core.Services;
 using ListIt.Infrastructure.Persistence;
 using ListIt.Shell.Windows.Desktop;
@@ -22,47 +23,34 @@ public partial class MainWindow : Window
     }
 
     public MainWindow(DesktopShellBox shellBox)
+        : this(shellBox, CreateDefaultTaskService(out var runtime), runtime)
+    {
+    }
+
+    public MainWindow(DesktopShellBox shellBox, ITaskService taskService, ISchedulingRuntime schedulingRuntime)
     {
         _shellBox = shellBox ?? throw new ArgumentNullException(nameof(shellBox));
+        if (taskService == null) throw new ArgumentNullException(nameof(taskService));
+        if (schedulingRuntime == null) throw new ArgumentNullException(nameof(schedulingRuntime));
 
         InitializeComponent();
-
-        // Composition root: Repository -> Service -> Scheduling -> ViewModel
-        var repository = new JsonTaskRepository();
-        var taskService = new TaskService(repository);
-        var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
-        var scheduler = new ListIt.Core.Scheduling.Scheduler();
-        var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(taskService);
-        var schedulingRuntime = new ListIt.Core.Scheduling.SchedulingRuntime(taskService, generator, scheduler, occurrenceService);
-
-        // Composition root: Notification Engine (Phase 3)
-        var notificationTimingPolicy = new ListIt.Core.Notifications.NotificationTimingPolicy();
-        var notificationSuppressionPolicy = new ListIt.Core.Notifications.NotificationSuppressionPolicy();
-        var notificationPresentationPolicy = new ListIt.Core.Notifications.NotificationPresentationPolicy();
-        var notificationHistory = new ListIt.Core.Notifications.InMemoryNotificationHistory();
-        var notificationEngine = new ListIt.Core.Notifications.NotificationEngine(
-            notificationTimingPolicy,
-            notificationSuppressionPolicy,
-            notificationHistory,
-            notificationPresentationPolicy);
-
-        // Composition root: Notification Action Handler (Phase 4.3)
-        var notificationActionHandler = new ListIt.Core.Notifications.NotificationActionHandler(
-            schedulingRuntime,
-            taskService,
-            notificationHistory);
-
-        // Composition root: Windows Notification Presenter (Phase 4.1 & 4.3)
-        var notificationPresenter = new ListIt.Shell.Notifications.WindowsNotificationPresenter(
-            actionHandler: notificationActionHandler);
 
         var mainViewModel = new MainViewModel(taskService, schedulingRuntime);
         DataContext = mainViewModel;
 
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
-        Loaded += (s, e) => schedulingRuntime.Start();
-        Closed += (s, e) => schedulingRuntime.Dispose();
+    }
+
+    private static ITaskService CreateDefaultTaskService(out ISchedulingRuntime schedulingRuntime)
+    {
+        var repository = new JsonTaskRepository();
+        var taskService = new TaskService(repository);
+        var generator = new OccurrenceGenerator();
+        var scheduler = new Scheduler();
+        var occurrenceService = new OccurrenceService(taskService);
+        schedulingRuntime = new SchedulingRuntime(taskService, generator, scheduler, occurrenceService);
+        return taskService;
     }
 
     private void MainWindow_SourceInitialized(object? sender, EventArgs e)

@@ -1,8 +1,7 @@
-﻿<Application x:Class="ListIt.App"
+<Application x:Class="ListIt.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:ListIt"
-             StartupUri="MainWindow.xaml">
+             xmlns:local="clr-namespace:ListIt">
     <Application.Resources>
          
     </Application.Resources>
