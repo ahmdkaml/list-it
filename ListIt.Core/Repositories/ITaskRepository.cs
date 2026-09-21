@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using Task = ListIt.Core.Models.Task;
+using ListIt.Core.Models;
 
 namespace ListIt.Core.Repositories;
 
@@ -10,9 +10,9 @@ namespace ListIt.Core.Repositories;
 /// </summary>
 public interface ITaskRepository
 {
-    IReadOnlyList<Task> GetAll();
-    Task? GetById(Guid id);
-    void Add(Task task);
-    void Update(Task task);
+    IReadOnlyList<TaskBase> GetAll();
+    TaskBase? GetById(Guid id);
+    void Add(TaskBase task);
+    void Update(TaskBase task);
     bool Delete(Guid id);
 }
