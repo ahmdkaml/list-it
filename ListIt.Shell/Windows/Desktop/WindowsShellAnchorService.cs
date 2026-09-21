@@ -96,11 +96,6 @@ public class WindowsShellAnchorService : IShellAnchorService
             SetWindowLongPtr(hWnd, GWLP_HWNDPARENT, desktopHandle);
         }
 
-        // Set WS_EX_NOACTIVATE so clicking/dragging never activates or raises over other apps
-        long exStyle = GetWindowLongPtr(hWnd, GWL_EXSTYLE).ToInt64();
-        exStyle |= WS_EX_NOACTIVATE;
-        SetWindowLongPtr(hWnd, GWL_EXSTYLE, new IntPtr(exStyle));
-
         // Hook window procedure
         var source = HwndSource.FromHwnd(hWnd);
         source?.AddHook(WndProc);
@@ -126,11 +121,6 @@ public class WindowsShellAnchorService : IShellAnchorService
     {
         switch (msg)
         {
-            case WM_MOUSEACTIVATE:
-                // Prevent mouse clicks from activating or bringing window to front
-                handled = true;
-                return new IntPtr(MA_NOACTIVATE);
-
             case WM_WINDOWPOSCHANGING:
                 if (lParam != IntPtr.Zero)
                 {

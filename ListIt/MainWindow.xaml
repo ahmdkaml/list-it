@@ -3,7 +3,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:views="clr-namespace:ListIt.UI.Views;assembly=ListIt.UI"
         Title="ListIt"
-        Height="140" Width="240"
+        Height="440" Width="320"
         WindowStartupLocation="CenterScreen"
         ResizeMode="NoResize"
         WindowStyle="None"
