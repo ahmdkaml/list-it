@@ -34,6 +34,18 @@ public partial class MainWindow : Window
         var scheduler = new ListIt.Core.Scheduling.Scheduler();
         var occurrenceService = new ListIt.Core.Scheduling.OccurrenceService(taskService);
         var schedulingRuntime = new ListIt.Core.Scheduling.SchedulingRuntime(taskService, generator, scheduler, occurrenceService);
+
+        // Composition root: Notification Engine (Phase 3)
+        var notificationTimingPolicy = new ListIt.Core.Notifications.NotificationTimingPolicy();
+        var notificationSuppressionPolicy = new ListIt.Core.Notifications.NotificationSuppressionPolicy();
+        var notificationPresentationPolicy = new ListIt.Core.Notifications.NotificationPresentationPolicy();
+        var notificationHistory = new ListIt.Core.Notifications.InMemoryNotificationHistory();
+        var notificationEngine = new ListIt.Core.Notifications.NotificationEngine(
+            notificationTimingPolicy,
+            notificationSuppressionPolicy,
+            notificationHistory,
+            notificationPresentationPolicy);
+
         var mainViewModel = new MainViewModel(taskService, schedulingRuntime);
         DataContext = mainViewModel;
 

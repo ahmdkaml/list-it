@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace ListIt.Core.Notifications;
 
@@ -18,6 +20,7 @@ public class NotificationDecision
     public NotificationVisualCategory VisualCategory { get; }
     public double Opacity { get; }
     public NotificationSuppressionResult? SuppressionResult { get; }
+    public IReadOnlyList<NotificationOpportunity> Opportunities { get; }
 
     public NotificationDecision(
         bool shouldNotify,
@@ -29,7 +32,8 @@ public class NotificationDecision
         TimeSpan remaining,
         NotificationVisualCategory visualCategory,
         double opacity,
-        NotificationSuppressionResult? suppressionResult = null)
+        NotificationSuppressionResult? suppressionResult = null,
+        IEnumerable<NotificationOpportunity>? opportunities = null)
     {
         ShouldNotify = shouldNotify;
         TaskId = taskId;
@@ -41,6 +45,7 @@ public class NotificationDecision
         VisualCategory = visualCategory;
         Opacity = opacity;
         SuppressionResult = suppressionResult;
+        Opportunities = (opportunities?.ToList() ?? new List<NotificationOpportunity>()).AsReadOnly();
     }
 
     /// <summary>
@@ -55,7 +60,8 @@ public class NotificationDecision
         TimeSpan remaining = default,
         NotificationVisualCategory visualCategory = NotificationVisualCategory.Low,
         double opacity = 0.0,
-        NotificationSuppressionResult? suppressionResult = null)
+        NotificationSuppressionResult? suppressionResult = null,
+        IEnumerable<NotificationOpportunity>? opportunities = null)
     {
         return new NotificationDecision(
             shouldNotify: false,
@@ -67,7 +73,8 @@ public class NotificationDecision
             remaining: remaining,
             visualCategory: visualCategory,
             opacity: opacity,
-            suppressionResult: suppressionResult);
+            suppressionResult: suppressionResult,
+            opportunities: opportunities);
     }
 
     /// <summary>
@@ -82,7 +89,8 @@ public class NotificationDecision
         TimeSpan remaining,
         NotificationVisualCategory visualCategory,
         double opacity = 1.0,
-        NotificationSuppressionResult? suppressionResult = null)
+        NotificationSuppressionResult? suppressionResult = null,
+        IEnumerable<NotificationOpportunity>? opportunities = null)
     {
         return new NotificationDecision(
             shouldNotify: true,
@@ -94,6 +102,7 @@ public class NotificationDecision
             remaining: remaining,
             visualCategory: visualCategory,
             opacity: opacity,
-            suppressionResult: suppressionResult);
+            suppressionResult: suppressionResult,
+            opportunities: opportunities);
     }
 }
