@@ -4,22 +4,25 @@ namespace ListIt.Core.Notifications;
 
 /// <summary>
 /// Pipeline orchestrator that coordinates timing policy evaluation, opportunity discovery,
-/// priority suppression, and decision production.
+/// priority suppression, presentation policy, and decision production.
 /// </summary>
 public class NotificationEngine : INotificationEngine
 {
     private readonly INotificationTimingPolicy _timingPolicy;
     private readonly INotificationSuppressionPolicy _suppressionPolicy;
+    private readonly INotificationPresentationPolicy _presentationPolicy;
     private readonly INotificationHistory _history;
 
     public NotificationEngine(
         INotificationTimingPolicy timingPolicy,
         INotificationSuppressionPolicy suppressionPolicy,
-        INotificationHistory history)
+        INotificationHistory history,
+        INotificationPresentationPolicy? presentationPolicy = null)
     {
         _timingPolicy = timingPolicy ?? throw new ArgumentNullException(nameof(timingPolicy));
         _suppressionPolicy = suppressionPolicy ?? throw new ArgumentNullException(nameof(suppressionPolicy));
         _history = history ?? throw new ArgumentNullException(nameof(history));
+        _presentationPolicy = presentationPolicy ?? new NotificationPresentationPolicy();
     }
 
     public NotificationDecision Evaluate(NotificationContext context)
@@ -28,6 +31,10 @@ public class NotificationEngine : INotificationEngine
 
         var elapsed = context.CurrentTime > context.ScheduledAt
             ? context.CurrentTime - context.ScheduledAt
+            : TimeSpan.Zero;
+
+        var remaining = context.CurrentTime < context.ScheduledAt
+            ? context.ScheduledAt - context.CurrentTime
             : TimeSpan.Zero;
 
         // 1. Evaluate time-based eligibility
@@ -39,40 +46,33 @@ public class NotificationEngine : INotificationEngine
                 occurrenceId: context.OccurrenceId,
                 urgency: context.Urgency,
                 skipCount: context.SkipCount,
-                elapsed: elapsed);
+                elapsed: elapsed,
+                remaining: remaining);
         }
 
-        NotificationSuppressionResult? lastSuppressionResult = null;
-        bool anyAllowed = false;
+        NotificationDecision? presentationDecision = null;
+        NotificationSuppressionResult? lastSuppression = null;
 
-        // 2. Evaluate priority suppression for each eligible opportunity
+        // 2. Evaluate priority suppression and presentation for each eligible opportunity
         foreach (var opportunity in timingResult.EligibleOpportunities)
         {
             var suppression = _suppressionPolicy.Evaluate(context, opportunity);
-            lastSuppressionResult = suppression;
+            lastSuppression = suppression;
 
             // Invariant: Both allowed and suppressed opportunities are marked as emitted
             // in history so suppressed opportunities do not flood retroactively when active work ends.
             _history.RecordEmitted(opportunity.OccurrenceId, opportunity.OpportunityIndex);
 
-            if (suppression.IsAllowed)
+            var decision = _presentationPolicy.Evaluate(context, opportunity, suppression);
+            if (decision.ShouldNotify && presentationDecision == null)
             {
-                anyAllowed = true;
+                presentationDecision = decision;
             }
         }
 
-        if (anyAllowed)
+        if (presentationDecision != null)
         {
-            return NotificationDecision.Notify(
-                taskId: context.TaskId,
-                occurrenceId: context.OccurrenceId,
-                urgency: context.Urgency,
-                skipCount: context.SkipCount,
-                elapsed: elapsed,
-                remaining: TimeSpan.Zero,
-                visualCategory: NotificationVisualCategory.Low,
-                opacity: 1.0,
-                suppressionResult: lastSuppressionResult);
+            return presentationDecision;
         }
 
         return NotificationDecision.DoNotNotify(
@@ -81,9 +81,9 @@ public class NotificationEngine : INotificationEngine
             urgency: context.Urgency,
             skipCount: context.SkipCount,
             elapsed: elapsed,
-            remaining: TimeSpan.Zero,
-            visualCategory: NotificationVisualCategory.Low,
+            remaining: remaining,
+            visualCategory: _presentationPolicy.GetVisualCategory(context.Urgency),
             opacity: 0.0,
-            suppressionResult: lastSuppressionResult);
+            suppressionResult: lastSuppression);
     }
 }
