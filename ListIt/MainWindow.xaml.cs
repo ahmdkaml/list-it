@@ -46,6 +46,9 @@ public partial class MainWindow : Window
             notificationHistory,
             notificationPresentationPolicy);
 
+        // Composition root: Windows Notification Presenter (Phase 4.1)
+        var notificationPresenter = new ListIt.Shell.Notifications.WindowsNotificationPresenter();
+
         var mainViewModel = new MainViewModel(taskService, schedulingRuntime);
         DataContext = mainViewModel;
 
