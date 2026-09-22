@@ -52,9 +52,26 @@ public class DesktopShellBox
     }
 
     /// <summary>
-    /// Positions the window in the lower-right corner of the usable work area and pins it to the bottom of the Z-order.
+    /// Positions the window at the center of the usable work area and pins it to the bottom of the Z-order.
     /// </summary>
-    public void PositionLowerRightAndPin(Window window, double margin = 16.0)
+    public void PositionCenterAndPin(Window window)
+    {
+        if (window == null) return;
+
+        var pos = DesktopPositioningService.CalculateCenterPosition(
+            SystemParameters.WorkArea,
+            new Size(window.Width, window.Height));
+
+        window.Left = pos.X;
+        window.Top = pos.Y;
+
+        _shellAnchorService.SendToBottom(window);
+    }
+
+    /// <summary>
+    /// Positions the window at the lower-right of the usable work area and pins it to the bottom of the Z-order.
+    /// </summary>
+    public void PositionLowerRightAndPin(Window window, double margin = DesktopPositioningService.DefaultMargin)
     {
         if (window == null) return;
 

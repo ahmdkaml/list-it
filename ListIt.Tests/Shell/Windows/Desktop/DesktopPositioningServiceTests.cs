@@ -85,4 +85,40 @@ public class DesktopPositioningServiceTests
         Assert.Equal(0, pos.X);
         Assert.Equal(0, pos.Y);
     }
+
+    [Fact]
+    public void CalculateCenterPosition_StandardResolution_ReturnsCenterCoordinates()
+    {
+        var workArea = new Rect(0, 0, 1920, 1040);
+        var windowSize = new Size(320, 440);
+
+        var pos = DesktopPositioningService.CalculateCenterPosition(workArea, windowSize);
+
+        Assert.Equal((1920 - 320) / 2.0, pos.X);
+        Assert.Equal((1040 - 440) / 2.0, pos.Y);
+    }
+
+    [Fact]
+    public void CalculateCenterPosition_OffsetWorkArea_CalculatesWithinTargetMonitor()
+    {
+        var workArea = new Rect(1920, 40, 1920, 1040);
+        var windowSize = new Size(320, 440);
+
+        var pos = DesktopPositioningService.CalculateCenterPosition(workArea, windowSize);
+
+        Assert.Equal(1920 + (1920 - 320) / 2.0, pos.X);
+        Assert.Equal(40 + (1040 - 440) / 2.0, pos.Y);
+    }
+
+    [Fact]
+    public void CalculateCenterPosition_ZeroOrNegativeWorkArea_ReturnsZeroPoint()
+    {
+        var workArea = new Rect(0, 0, 0, 0);
+        var windowSize = new Size(320, 440);
+
+        var pos = DesktopPositioningService.CalculateCenterPosition(workArea, windowSize);
+
+        Assert.Equal(0, pos.X);
+        Assert.Equal(0, pos.Y);
+    }
 }
