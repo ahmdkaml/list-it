@@ -44,4 +44,23 @@ public static class DesktopPositioningService
 
         return new Point(clampedX, clampedY);
     }
+
+    /// <summary>
+    /// Calculates the top-left coordinate to center a window within the usable work area.
+    /// </summary>
+    public static Point CalculateCenterPosition(Rect workArea, Size windowSize)
+    {
+        if (workArea.Width <= 0 || workArea.Height <= 0)
+        {
+            return new Point(0, 0);
+        }
+
+        double width = Math.Max(0, windowSize.Width);
+        double height = Math.Max(0, windowSize.Height);
+
+        double targetX = workArea.Left + (workArea.Width - width) / 2.0;
+        double targetY = workArea.Top + (workArea.Height - height) / 2.0;
+
+        return new Point(targetX, targetY);
+    }
 }

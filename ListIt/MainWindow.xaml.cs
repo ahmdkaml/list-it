@@ -63,7 +63,7 @@ public partial class MainWindow : Window
 
     private void MainWindow_Loaded(object sender, RoutedEventArgs e)
     {
-        _shellBox.PositionLowerRightAndPin(this);
+        _shellBox.PositionCenterAndPin(this);
     }
 
     private void MainWindow_Closing(object? sender, CancelEventArgs e)
