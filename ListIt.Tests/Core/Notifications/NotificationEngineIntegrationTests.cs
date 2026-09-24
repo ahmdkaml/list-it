@@ -29,7 +29,7 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange - Urgency 3 task, scheduled at 10:00, evaluated at 10:30 (50% threshold crossed)
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Task 1", new[] { new TimeOnly(10, 0) }, urgency: 3);
+        var task = new ListitTask("Task 1", urgency: 3);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30);
 
@@ -62,8 +62,8 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 3", new[] { new TimeOnly(10, 0) }, urgency: 3, bypassPrioritySuppression: false);
-        var workingTask = new RecurringTask("Working Urgency 5", new[] { new TimeOnly(9, 0) }, urgency: 5);
+        var candidateTask = new ListitTask("Candidate Urgency 3", urgency: 3, bypassPrioritySuppression: false);
+        var workingTask = new ListitTask("Working Urgency 5", urgency: 5);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30);
 
@@ -90,8 +90,8 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 2 Bypass", new[] { new TimeOnly(10, 0) }, urgency: 2, bypassPrioritySuppression: true);
-        var workingTask = new RecurringTask("Working Urgency 5", new[] { new TimeOnly(9, 0) }, urgency: 5);
+        var candidateTask = new ListitTask("Candidate Urgency 2 Bypass", urgency: 2, bypassPrioritySuppression: true);
+        var workingTask = new ListitTask("Working Urgency 5", urgency: 5);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30);
 
@@ -118,8 +118,8 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 5", new[] { new TimeOnly(10, 0) }, urgency: 5, bypassPrioritySuppression: false);
-        var workingTask = new RecurringTask("Working Urgency 3", new[] { new TimeOnly(9, 0) }, urgency: 3);
+        var candidateTask = new ListitTask("Candidate Urgency 5", urgency: 5, bypassPrioritySuppression: false);
+        var workingTask = new ListitTask("Working Urgency 3", urgency: 3);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30);
 
@@ -146,8 +146,8 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange - Equal priority must not be suppressed
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 4", new[] { new TimeOnly(10, 0) }, urgency: 4, bypassPrioritySuppression: false);
-        var workingTask = new RecurringTask("Working Urgency 4", new[] { new TimeOnly(9, 0) }, urgency: 4);
+        var candidateTask = new ListitTask("Candidate Urgency 4", urgency: 4, bypassPrioritySuppression: false);
+        var workingTask = new ListitTask("Working Urgency 4", urgency: 4);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30);
 
@@ -174,7 +174,7 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Completed Task", new[] { new TimeOnly(10, 0) }, urgency: 5);
+        var task = new ListitTask("Completed Task", urgency: 5);
         var occurrence = new TaskOccurrence(Guid.NewGuid(), task.Id, scheduledAt, OccurrenceStatus.Completed);
         var currentTime = scheduledAt.AddMinutes(45);
 
@@ -194,7 +194,7 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Missed Task", new[] { new TimeOnly(10, 0) }, urgency: 5);
+        var task = new ListitTask("Missed Task", urgency: 5);
         var occurrence = new TaskOccurrence(Guid.NewGuid(), task.Id, scheduledAt, OccurrenceStatus.Missed);
         var currentTime = scheduledAt.AddMinutes(45);
 
@@ -214,7 +214,7 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Idempotency Task", new[] { new TimeOnly(10, 0) }, urgency: 1);
+        var task = new ListitTask("Idempotency Task", urgency: 1);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(60); // 100% threshold crossed
 
@@ -246,7 +246,7 @@ public class NotificationEngineIntegrationTests
     {
         // Arrange - Urgency 4 has thresholds at 25% (15m), 50% (30m), 75% (45m), 100% (60m)
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 4 Task", new[] { new TimeOnly(10, 0) }, urgency: 4);
+        var task = new ListitTask("Urgency 4 Task", urgency: 4);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
 
         // Time jumps directly to 10:45 (45 minutes elapsed = 75% of 60m lapse)

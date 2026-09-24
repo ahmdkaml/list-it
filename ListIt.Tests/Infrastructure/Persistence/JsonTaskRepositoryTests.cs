@@ -36,10 +36,7 @@ public class JsonTaskRepositoryTests : IDisposable
     [Fact]
     public void DefaultFilePath_ResolvesUnderLocalAppDataListIt()
     {
-        // Act
         var defaultPath = JsonTaskRepository.GetDefaultFilePath();
-
-        // Assert
         var expectedFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ListIt");
         Assert.StartsWith(expectedFolder, defaultPath, StringComparison.OrdinalIgnoreCase);
         Assert.EndsWith("tasks.json", defaultPath, StringComparison.OrdinalIgnoreCase);
@@ -48,21 +45,17 @@ public class JsonTaskRepositoryTests : IDisposable
     [Fact]
     public void NonExistentFile_ReturnsEmptyList()
     {
-        // Arrange & Act
         var repo = new JsonTaskRepository(_tempFilePath);
-
-        // Assert
         Assert.Empty(repo.GetAll());
         Assert.Null(repo.GetById(Guid.NewGuid()));
     }
 
     [Fact]
-    public void Add_PersistsRecurringTask_AndPreservesConcreteTypeAndInvariants()
+    public void Add_PersistsRecurringTask_AndPreservesInvariants()
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var times = new[] { new TimeOnly(9, 0), new TimeOnly(18, 30) };
-        var task = new RecurringTask("Daily Review", times, "End of day sync", 4);
+        var task = new ListitTask("Daily Review", TaskType.Recurring, TimeSpan.FromDays(1), "End of day sync", 4);
 
         // Act
         repo.Add(task);
@@ -71,32 +64,37 @@ public class JsonTaskRepositoryTests : IDisposable
         Assert.Single(repo.GetAll());
         var inMemory = repo.GetById(task.Id);
         Assert.NotNull(inMemory);
-        Assert.IsType<RecurringTask>(inMemory);
 
         // Re-read from disk with a fresh repository instance
         var reloadedRepo = new JsonTaskRepository(_tempFilePath);
         var loaded = reloadedRepo.GetById(task.Id);
         Assert.NotNull(loaded);
-        var recurring = Assert.IsType<RecurringTask>(loaded);
 
-        Assert.Equal(task.Id, recurring.Id);
-        Assert.Equal(TaskType.Recurring, recurring.Type);
-        Assert.Equal("Daily Review", recurring.Title);
-        Assert.Equal("End of day sync", recurring.Description);
-        Assert.Equal(4, recurring.Urgency);
-        Assert.Equal(DateTimeKind.Utc, recurring.CreatedAt.Kind);
-        Assert.Equal(task.CreatedAt, recurring.CreatedAt);
-        Assert.Equal(2, recurring.AssignedTimes.Count);
-        Assert.Equal(new TimeOnly(9, 0), recurring.AssignedTimes[0]);
-        Assert.Equal(new TimeOnly(18, 30), recurring.AssignedTimes[1]);
+        Assert.Equal(task.Id, loaded.Id);
+        Assert.Equal(TaskType.Recurring, loaded.Type);
+        Assert.Equal("Daily Review", loaded.Title);
+        Assert.Equal("End of day sync", loaded.Description);
+        Assert.Equal(4, loaded.Urgency);
+        Assert.Equal(DateTimeKind.Utc, loaded.StartTime.Kind);
+        Assert.Equal(task.StartTime, loaded.StartTime);
+        Assert.Equal(TimeSpan.FromDays(1), loaded.Interval);
     }
 
     [Fact]
-    public void Add_PersistsFiniteTask_AndPreservesConcreteTypeAndInvariants()
+    public void Add_PersistsFiniteTask_AndPreservesInvariants()
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var task = new FiniteTask("Submit tax documents", requiredCompletions: 3, currentCompletions: 1, description: "Finance", urgency: 6);
+        var task = new ListitTask(
+            id: Guid.NewGuid(),
+            title: "Submit tax documents",
+            type: TaskType.Finite,
+            interval: TimeSpan.FromDays(2),
+            description: "Finance",
+            urgency: 6,
+            startTime: DateTime.UtcNow,
+            requiredCompletions: 3,
+            currentCompletions: 1);
 
         // Act
         repo.Add(task);
@@ -105,17 +103,16 @@ public class JsonTaskRepositoryTests : IDisposable
         var reloadedRepo = new JsonTaskRepository(_tempFilePath);
         var loaded = reloadedRepo.GetById(task.Id);
         Assert.NotNull(loaded);
-        var finite = Assert.IsType<FiniteTask>(loaded);
 
-        Assert.Equal(task.Id, finite.Id);
-        Assert.Equal(TaskType.Finite, finite.Type);
-        Assert.Equal("Submit tax documents", finite.Title);
-        Assert.Equal("Finance", finite.Description);
-        Assert.Equal(6, finite.Urgency);
-        Assert.Equal(DateTimeKind.Utc, finite.CreatedAt.Kind);
-        Assert.Equal(task.CreatedAt, finite.CreatedAt);
-        Assert.Equal(3, finite.RequiredCompletions);
-        Assert.Equal(1, finite.CurrentCompletions);
+        Assert.Equal(task.Id, loaded.Id);
+        Assert.Equal(TaskType.Finite, loaded.Type);
+        Assert.Equal("Submit tax documents", loaded.Title);
+        Assert.Equal("Finance", loaded.Description);
+        Assert.Equal(6, loaded.Urgency);
+        Assert.Equal(DateTimeKind.Utc, loaded.StartTime.Kind);
+        Assert.Equal(task.StartTime, loaded.StartTime);
+        Assert.Equal(3, loaded.RequiredCompletions);
+        Assert.Equal(1, loaded.CurrentCompletions);
     }
 
     [Fact]
@@ -123,7 +120,7 @@ public class JsonTaskRepositoryTests : IDisposable
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var task = new FiniteTask("Task A", requiredCompletions: 2);
+        var task = new ListitTask("Task A", TaskType.Finite, requiredCompletions: 2);
         repo.Add(task);
 
         // Act
@@ -136,12 +133,11 @@ public class JsonTaskRepositoryTests : IDisposable
         var reloadedRepo = new JsonTaskRepository(_tempFilePath);
         var loaded = reloadedRepo.GetById(task.Id);
         Assert.NotNull(loaded);
-        var finite = Assert.IsType<FiniteTask>(loaded);
 
-        Assert.Equal("Task A Renamed", finite.Title);
-        Assert.Equal("Updated description", finite.Description);
-        Assert.Equal(3, finite.Urgency);
-        Assert.Equal(1, finite.CurrentCompletions);
+        Assert.Equal("Task A Renamed", loaded.Title);
+        Assert.Equal("Updated description", loaded.Description);
+        Assert.Equal(3, loaded.Urgency);
+        Assert.Equal(1, loaded.CurrentCompletions);
     }
 
     [Fact]
@@ -149,7 +145,7 @@ public class JsonTaskRepositoryTests : IDisposable
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var task = new FiniteTask("Temporary Task", 1);
+        var task = new ListitTask("Temporary Task", TaskType.Finite, requiredCompletions: 1);
         repo.Add(task);
         Assert.Single(repo.GetAll());
 
@@ -169,36 +165,27 @@ public class JsonTaskRepositoryTests : IDisposable
     [Fact]
     public void Add_DuplicateId_ThrowsInvalidOperationException()
     {
-        // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var task = new FiniteTask("Task", 1);
+        var task = new ListitTask("Task", TaskType.Finite, requiredCompletions: 1);
         repo.Add(task);
 
-        // Act & Assert
         Assert.Throws<InvalidOperationException>(() => repo.Add(task));
     }
 
     [Fact]
     public void Update_NonExistentTask_ThrowsKeyNotFoundException()
     {
-        // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var task = new FiniteTask("Task", 1);
+        var task = new ListitTask("Task", TaskType.Finite, requiredCompletions: 1);
 
-        // Act & Assert
         Assert.Throws<KeyNotFoundException>(() => repo.Update(task));
     }
 
     [Fact]
     public void Delete_NonExistentTask_ReturnsFalse()
     {
-        // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-
-        // Act
         var result = repo.Delete(Guid.NewGuid());
-
-        // Assert
         Assert.False(result);
     }
 }

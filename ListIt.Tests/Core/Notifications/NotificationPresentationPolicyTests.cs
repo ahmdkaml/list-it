@@ -70,7 +70,7 @@ public class NotificationPresentationPolicyTests
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
         var currentTime = scheduledAt.AddMinutes(45);
-        var task = new RecurringTask("Urgency 4 Task", new[] { new TimeOnly(10, 0) }, urgency: 4);
+        var task = new ListitTask("Urgency 4 Task", TaskType.Recurring, urgency: 4);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var context = new NotificationContext(task, occurrence, currentTime, SchedulingState.Overdue, skipCount: 3);
         var opportunity = new NotificationOpportunity(task.Id, occurrence.OccurrenceId, 0, 0.5, currentTime);
@@ -98,7 +98,7 @@ public class NotificationPresentationPolicyTests
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
         var currentTime = scheduledAt.AddMinutes(60);
-        var task = new RecurringTask("Urgency 2 Task", new[] { new TimeOnly(10, 0) }, urgency: 2);
+        var task = new ListitTask("Urgency 2 Task", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var context = new NotificationContext(task, occurrence, currentTime, SchedulingState.Overdue);
         var opportunity = new NotificationOpportunity(task.Id, occurrence.OccurrenceId, 0, 1.0, currentTime);
@@ -122,7 +122,7 @@ public class NotificationPresentationPolicyTests
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
         var currentTime = scheduledAt.AddMinutes(60);
-        var task = new RecurringTask("Task", new[] { new TimeOnly(10, 0) }, urgency: 3);
+        var task = new ListitTask("Task", TaskType.Recurring, urgency: 3);
         var occurrence = new TaskOccurrence(Guid.NewGuid(), task.Id, scheduledAt, terminalStatus);
         var context = new NotificationContext(task, occurrence, currentTime, SchedulingState.Overdue);
         var opportunity = new NotificationOpportunity(task.Id, occurrence.OccurrenceId, 0, 1.0, currentTime);
@@ -147,7 +147,7 @@ public class NotificationPresentationPolicyTests
         var engine = new NotificationEngine(timingPolicy, suppressionPolicy, history, presentationPolicy);
 
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 6 Task", new[] { new TimeOnly(10, 0) }, urgency: 6);
+        var task = new ListitTask("Urgency 6 Task", TaskType.Recurring, urgency: 6);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(60); // 100% threshold crossed
 

@@ -17,31 +17,41 @@ public class TaskService : ITaskService
         _repository = repository ?? throw new ArgumentNullException(nameof(repository));
     }
 
-    public IReadOnlyList<TaskBase> GetAllTasks()
+    public IReadOnlyList<ListitTask> GetAllTasks()
     {
         return _repository.GetAll();
     }
 
-    public TaskBase? GetTask(Guid id)
+    public ListitTask? GetTask(Guid id)
     {
         return _repository.GetById(id);
     }
 
-    public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false)
+    public ListitTask CreateTask(
+        string title,
+        TaskType type = TaskType.Recurring,
+        TimeSpan? interval = null,
+        string description = "",
+        int urgency = 1,
+        DateTime? startTime = null,
+        int requiredCompletions = 1,
+        bool bypassPrioritySuppression = false)
     {
-        var task = new RecurringTask(title, assignedTimes, description, urgency, bypassPrioritySuppression);
+        var task = new ListitTask(
+            title: title,
+            type: type,
+            interval: interval,
+            description: description,
+            urgency: urgency,
+            startTime: startTime,
+            requiredCompletions: requiredCompletions,
+            bypassPrioritySuppression: bypassPrioritySuppression);
+
         _repository.Add(task);
         return task;
     }
 
-    public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false)
-    {
-        var task = new FiniteTask(title, requiredCompletions, currentCompletions: 0, description, urgency, dueAt, bypassPrioritySuppression);
-        _repository.Add(task);
-        return task;
-    }
-
-    public void UpdateTask(TaskBase task)
+    public void UpdateTask(ListitTask task)
     {
         if (task == null)
         {

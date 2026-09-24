@@ -11,6 +11,6 @@ namespace ListIt.Core.Scheduling;
 /// </summary>
 public interface IOccurrenceGenerator
 {
-    IReadOnlyList<TaskOccurrence> Generate(TaskBase task, DateOnly date);
-    IReadOnlyList<TaskOccurrence> Generate(TaskBase task, DateOnly startDate, DateOnly endDate);
+    IReadOnlyList<TaskOccurrence> Generate(ListitTask task, DateOnly date);
+    IReadOnlyList<TaskOccurrence> Generate(ListitTask task, DateOnly startDate, DateOnly endDate);
 }

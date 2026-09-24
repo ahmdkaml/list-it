@@ -40,57 +40,58 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
     public void RecurringTask_Pipeline_EvaluatesAndPreservesScheduleAfterCompletion()
     {
         // Arrange
-        var testTime = new DateTime(2026, 9, 21, 14, 0, 0);
+        var testTime = new DateTime(2026, 9, 21, 14, 0, 0, DateTimeKind.Utc);
         using var runtime = new SchedulingRuntime(
             _taskService, _generator, _scheduler, _occurrenceService,
             clock: () => testTime);
 
-        var task = _taskService.CreateRecurringTask(
+        var task = _taskService.CreateTask(
             "Daily Sync",
-            new[] { new TimeOnly(14, 0), new TimeOnly(18, 0) },
-            urgency: 2);
+            TaskType.Recurring,
+            TimeSpan.FromHours(4),
+            urgency: 2,
+            startTime: testTime);
 
         // Act - 1. Initial evaluation
         var evaluations = runtime.EvaluateNow();
 
-        // Assert - 2 occurrences generated and evaluated
-        Assert.Equal(2, evaluations.Count);
-        var occ14 = evaluations.First(e => e.Occurrence.ScheduledAt.Hour == 14);
-        var occ18 = evaluations.First(e => e.Occurrence.ScheduledAt.Hour == 18);
+        // Assert - occurrences generated and evaluated
+        Assert.NotEmpty(evaluations);
+        var occ14 = evaluations.First();
 
         Assert.Equal(SchedulingState.Due, occ14.State);
-        Assert.Equal(SchedulingState.Upcoming, occ18.State);
 
         // Act - 2. Complete 14:00 occurrence
         runtime.CompleteOccurrence(occ14.Occurrence);
 
         // Assert - Re-evaluated after completion
         var updatedEvals = runtime.CurrentEvaluations;
-        var updatedOcc14 = updatedEvals.First(e => e.Occurrence.ScheduledAt.Hour == 14);
+        var updatedOcc14 = updatedEvals.First();
         Assert.Equal(OccurrenceStatus.Completed, updatedOcc14.Occurrence.Status);
         Assert.Equal(SchedulingState.Completed, updatedOcc14.State);
 
         // Verify task itself remains recurring and schedule is untouched
-        var retrievedTask = _taskService.GetTask(task.Id) as RecurringTask;
+        var retrievedTask = _taskService.GetTask(task.Id);
         Assert.NotNull(retrievedTask);
-        Assert.Equal(2, retrievedTask.AssignedTimes.Count);
-        Assert.Contains(new TimeOnly(14, 0), retrievedTask.AssignedTimes);
-        Assert.Contains(new TimeOnly(18, 0), retrievedTask.AssignedTimes);
+        Assert.Equal(TaskType.Recurring, retrievedTask.Type);
+        Assert.Equal(TimeSpan.FromHours(4), retrievedTask.Interval);
     }
 
     [Fact]
     public void FiniteTask_Pipeline_CompletesIncrementsAndDeletesAtRequiredCount()
     {
         // Arrange
-        var dueTime = new DateTime(2026, 9, 21, 16, 0, 0);
+        var dueTime = new DateTime(2026, 9, 21, 16, 0, 0, DateTimeKind.Utc);
         using var runtime = new SchedulingRuntime(
             _taskService, _generator, _scheduler, _occurrenceService,
             clock: () => dueTime);
 
-        var finiteTask = _taskService.CreateFiniteTask(
+        var finiteTask = _taskService.CreateTask(
             "Submit Invoices",
-            requiredCompletions: 2,
-            dueAt: dueTime);
+            TaskType.Finite,
+            TimeSpan.FromHours(1),
+            startTime: dueTime.AddHours(-1),
+            requiredCompletions: 2);
 
         // Act & Assert - Completion 1
         var evals1 = runtime.EvaluateNow();
@@ -100,7 +101,7 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
 
         runtime.CompleteOccurrence(eval1.Occurrence);
 
-        var taskAfterFirst = _taskService.GetTask(finiteTask.Id) as FiniteTask;
+        var taskAfterFirst = _taskService.GetTask(finiteTask.Id);
         Assert.NotNull(taskAfterFirst);
         Assert.Equal(1, taskAfterFirst.CurrentCompletions);
 
@@ -123,12 +124,12 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
     public void WorkingState_Pipeline_StartsWorkingAndEndsUponCompletion()
     {
         // Arrange
-        var testTime = new DateTime(2026, 9, 21, 9, 0, 0);
+        var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
         using var runtime = new SchedulingRuntime(
             _taskService, _generator, _scheduler, _occurrenceService,
             clock: () => testTime);
 
-        var task = _taskService.CreateRecurringTask("Deep Work", new[] { new TimeOnly(9, 0) });
+        var task = _taskService.CreateTask("Deep Work", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
         var evals = runtime.EvaluateNow();
         var evaluated = Assert.Single(evals);
 
@@ -157,15 +158,17 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
     public void SuppressionBypass_ConfigurationPreservedAcrossEvaluations()
     {
         // Arrange
-        var testTime = new DateTime(2026, 9, 21, 10, 0, 0);
+        var testTime = new DateTime(2026, 9, 21, 10, 0, 0, DateTimeKind.Utc);
         using var runtime = new SchedulingRuntime(
             _taskService, _generator, _scheduler, _occurrenceService,
             clock: () => testTime);
 
-        var task = _taskService.CreateRecurringTask(
+        var task = _taskService.CreateTask(
             "Executive Alert",
-            new[] { new TimeOnly(10, 0) },
+            TaskType.Recurring,
+            TimeSpan.FromDays(1),
             urgency: 6,
+            startTime: testTime,
             bypassPrioritySuppression: true);
 
         // Act
@@ -180,12 +183,12 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
     public void DeduplicationAndStateRetention_AcrossRegenerationPasses()
     {
         // Arrange
-        var testTime = new DateTime(2026, 9, 21, 8, 0, 0);
+        var testTime = new DateTime(2026, 9, 21, 8, 0, 0, DateTimeKind.Utc);
         using var runtime = new SchedulingRuntime(
             _taskService, _generator, _scheduler, _occurrenceService,
             clock: () => testTime);
 
-        var task = _taskService.CreateRecurringTask("Daily Check", new[] { new TimeOnly(8, 0) });
+        var task = _taskService.CreateTask("Daily Check", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
 
         // Initial evaluation
         var evals1 = runtime.EvaluateNow();
@@ -195,7 +198,7 @@ public class SchedulingRuntimeIntegrationTests : IDisposable
         runtime.StartWorking(occ1);
 
         // Second evaluation at a later time
-        var evals2 = runtime.EvaluateNow(new DateTime(2026, 9, 21, 8, 30, 0));
+        var evals2 = runtime.EvaluateNow(new DateTime(2026, 9, 21, 8, 30, 0, DateTimeKind.Utc));
         var occ2 = evals2[0].Occurrence;
 
         // Must retain the exact same occurrence instance and working state

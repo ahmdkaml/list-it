@@ -12,14 +12,13 @@ public class MainViewModelTests
 {
     private class FakeTaskService : ITaskService
     {
-        private readonly List<TaskBase> _tasks = new();
+        private readonly List<ListitTask> _tasks = new();
 
         public int DeleteCallCount { get; private set; }
         public int UpdateCallCount { get; private set; }
-        public int CreateRecurringCallCount { get; private set; }
-        public int CreateFiniteCallCount { get; private set; }
+        public int CreateCallCount { get; private set; }
 
-        public FakeTaskService(IEnumerable<TaskBase>? initialTasks = null)
+        public FakeTaskService(IEnumerable<ListitTask>? initialTasks = null)
         {
             if (initialTasks != null)
             {
@@ -27,27 +26,35 @@ public class MainViewModelTests
             }
         }
 
-        public IReadOnlyList<TaskBase> GetAllTasks() => _tasks.ToList().AsReadOnly();
+        public IReadOnlyList<ListitTask> GetAllTasks() => _tasks.ToList().AsReadOnly();
 
-        public TaskBase? GetTask(Guid id) => _tasks.FirstOrDefault(t => t.Id == id);
+        public ListitTask? GetTask(Guid id) => _tasks.FirstOrDefault(t => t.Id == id);
 
-        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false)
+        public ListitTask CreateTask(
+            string title,
+            TaskType type = TaskType.Recurring,
+            TimeSpan? interval = null,
+            string description = "",
+            int urgency = 1,
+            DateTime? startTime = null,
+            int requiredCompletions = 1,
+            bool bypassPrioritySuppression = false)
         {
-            CreateRecurringCallCount++;
-            var task = new RecurringTask(title, assignedTimes, description, urgency, bypassPrioritySuppression);
+            CreateCallCount++;
+            var task = new ListitTask(
+                title: title,
+                type: type,
+                interval: interval,
+                description: description,
+                urgency: urgency,
+                startTime: startTime,
+                requiredCompletions: requiredCompletions,
+                bypassPrioritySuppression: bypassPrioritySuppression);
             _tasks.Add(task);
             return task;
         }
 
-        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false)
-        {
-            CreateFiniteCallCount++;
-            var task = new FiniteTask(title, requiredCompletions, 0, description, urgency, dueAt, bypassPrioritySuppression);
-            _tasks.Add(task);
-            return task;
-        }
-
-        public void UpdateTask(TaskBase task)
+        public void UpdateTask(ListitTask task)
         {
             UpdateCallCount++;
             var idx = _tasks.FindIndex(t => t.Id == task.Id);
@@ -57,8 +64,7 @@ public class MainViewModelTests
         public bool DeleteTask(Guid id)
         {
             DeleteCallCount++;
-            var removed = _tasks.RemoveAll(t => t.Id == id) > 0;
-            return removed;
+            return _tasks.RemoveAll(t => t.Id == id) > 0;
         }
     }
 
@@ -66,10 +72,10 @@ public class MainViewModelTests
     public void Constructor_LoadsTasksFromService()
     {
         // Arrange
-        var initial = new TaskBase[]
+        var initial = new ListitTask[]
         {
-            new RecurringTask("Task 1", new[] { new TimeOnly(9, 0) }),
-            new FiniteTask("Task 2", 2)
+            new ListitTask("Task 1", TaskType.Recurring),
+            new ListitTask("Task 2", TaskType.Finite, requiredCompletions: 2)
         };
         var service = new FakeTaskService(initial);
 
@@ -102,7 +108,7 @@ public class MainViewModelTests
     public void OpenEditTaskCommand_OpensEditorWithSelectedTask()
     {
         // Arrange
-        var task = new FiniteTask("Target Task", 3, 1, "Desc", 4);
+        var task = new ListitTask("Target Task", TaskType.Finite, description: "Desc", urgency: 4, requiredCompletions: 3);
         var service = new FakeTaskService(new[] { task });
         var vm = new MainViewModel(service);
         vm.SelectedTask = vm.Tasks[0];
@@ -122,7 +128,7 @@ public class MainViewModelTests
     public void DeleteTaskCommand_UserConfirms_DeletesTaskAndRefreshes()
     {
         // Arrange
-        var task = new FiniteTask("Task to Delete", 1);
+        var task = new ListitTask("Task to Delete", TaskType.Finite, requiredCompletions: 1);
         var service = new FakeTaskService(new[] { task });
         var vm = new MainViewModel(service)
         {
@@ -143,7 +149,7 @@ public class MainViewModelTests
     public void DeleteTaskCommand_UserCancels_DoesNotDeleteTask()
     {
         // Arrange
-        var task = new FiniteTask("Task to Keep", 1);
+        var task = new ListitTask("Task to Keep", TaskType.Finite, requiredCompletions: 1);
         var service = new FakeTaskService(new[] { task });
         var vm = new MainViewModel(service)
         {
@@ -168,7 +174,7 @@ public class MainViewModelTests
         var vm = new MainViewModel(service);
         Assert.Empty(vm.Tasks);
 
-        service.CreateFiniteTask("New Task", 1);
+        service.CreateTask("New Task", TaskType.Finite, requiredCompletions: 1);
 
         // Act
         vm.RefreshTasksCommand.Execute(null);
@@ -184,7 +190,7 @@ public class MainViewModelTests
         // Arrange
         var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
         var service = new FakeTaskService();
-        service.CreateRecurringTask("Morning Review", new[] { new TimeOnly(9, 0) });
+        service.CreateTask("Morning Review", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
 
         var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
         var scheduler = new ListIt.Core.Scheduling.Scheduler();
@@ -228,7 +234,7 @@ public class MainViewModelTests
         // Arrange
         var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
         var service = new FakeTaskService();
-        service.CreateRecurringTask("Daily Sync", new[] { new TimeOnly(9, 0) });
+        service.CreateTask("Daily Sync", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
 
         var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
         var scheduler = new ListIt.Core.Scheduling.Scheduler();
@@ -260,7 +266,7 @@ public class MainViewModelTests
         // Arrange
         var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
         var service = new FakeTaskService();
-        service.CreateFiniteTask("Finish Report", requiredCompletions: 1, dueAt: testTime);
+        service.CreateTask("Finish Report", TaskType.Finite, TimeSpan.FromHours(1), startTime: testTime.AddHours(-1), requiredCompletions: 1);
 
         var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
         var scheduler = new ListIt.Core.Scheduling.Scheduler();
@@ -290,8 +296,8 @@ public class MainViewModelTests
         // Arrange
         var testTime = new DateTime(2026, 9, 21, 9, 0, 0, DateTimeKind.Utc);
         var service = new FakeTaskService();
-        service.CreateRecurringTask("Task 1", new[] { new TimeOnly(9, 0) });
-        service.CreateRecurringTask("Task 2", new[] { new TimeOnly(9, 0) });
+        service.CreateTask("Task 1", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
+        service.CreateTask("Task 2", TaskType.Recurring, TimeSpan.FromDays(1), startTime: testTime);
 
         var generator = new ListIt.Core.Scheduling.OccurrenceGenerator();
         var scheduler = new ListIt.Core.Scheduling.Scheduler();

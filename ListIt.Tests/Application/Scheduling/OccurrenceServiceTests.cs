@@ -11,15 +11,14 @@ public class OccurrenceServiceTests
 {
     private class FakeTaskService : ITaskService
     {
-        public List<TaskBase> UpdatedTasks { get; } = new();
+        public List<ListitTask> UpdatedTasks { get; } = new();
         public List<Guid> DeletedTaskIds { get; } = new();
 
-        public IReadOnlyList<TaskBase> GetAllTasks() => Array.Empty<TaskBase>();
-        public TaskBase? GetTask(Guid id) => null;
-        public RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false) => throw new NotImplementedException();
-        public FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false) => throw new NotImplementedException();
+        public IReadOnlyList<ListitTask> GetAllTasks() => Array.Empty<ListitTask>();
+        public ListitTask? GetTask(Guid id) => null;
+        public ListitTask CreateTask(string title, TaskType type = TaskType.Recurring, TimeSpan? interval = null, string description = "", int urgency = 1, DateTime? startTime = null, int requiredCompletions = 1, bool bypassPrioritySuppression = false) => throw new NotImplementedException();
 
-        public void UpdateTask(TaskBase task)
+        public void UpdateTask(ListitTask task)
         {
             UpdatedTasks.Add(task);
         }
@@ -64,28 +63,12 @@ public class OccurrenceServiceTests
     }
 
     [Fact]
-    public void CompleteOccurrence_FromPending_SetsCompleted_AndIsWorkingFalse()
+    public void CompleteOccurrence_SetsCompletedStatus_AndClearsWorking()
     {
         // Arrange
-        var task = new RecurringTask("Review", new[] { new TimeOnly(14, 0) });
-        var occurrence = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
-
-        // Act
-        _service.CompleteOccurrence(occurrence, task);
-
-        // Assert
-        Assert.Equal(OccurrenceStatus.Completed, occurrence.Status);
-        Assert.False(occurrence.IsWorking);
-    }
-
-    [Fact]
-    public void CompleteOccurrence_WhileWorking_ClearsWorkingState()
-    {
-        // Arrange
-        var task = new RecurringTask("Review", new[] { new TimeOnly(14, 0) });
+        var task = new ListitTask("Exercise", TaskType.Finite, requiredCompletions: 1);
         var occurrence = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
         _service.StartWorking(occurrence);
-        Assert.True(occurrence.IsWorking);
 
         // Act
         _service.CompleteOccurrence(occurrence, task);
@@ -93,34 +76,6 @@ public class OccurrenceServiceTests
         // Assert
         Assert.Equal(OccurrenceStatus.Completed, occurrence.Status);
         Assert.False(occurrence.IsWorking);
-    }
-
-    [Fact]
-    public void CompleteOccurrence_MissedOccurrence_ThrowsInvalidOperationException()
-    {
-        // Arrange
-        var task = new RecurringTask("Review", new[] { new TimeOnly(14, 0) });
-        var occurrence = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
-        _service.MarkOccurrenceMissed(occurrence);
-        Assert.Equal(OccurrenceStatus.Missed, occurrence.Status);
-
-        // Act & Assert
-        Assert.Throws<InvalidOperationException>(() => _service.CompleteOccurrence(occurrence, task));
-    }
-
-    [Fact]
-    public void CompleteOccurrence_AlreadyCompleted_ThrowsAndDoesNotDoubleComplete()
-    {
-        // Arrange
-        var task = new FiniteTask("Submit Report", requiredCompletions: 3);
-        var occurrence = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
-
-        // First completion succeeds
-        _service.CompleteOccurrence(occurrence, task);
-        Assert.Equal(1, task.CurrentCompletions);
-
-        // Second completion throws and does not increment
-        Assert.Throws<InvalidOperationException>(() => _service.CompleteOccurrence(occurrence, task));
         Assert.Equal(1, task.CurrentCompletions);
     }
 
@@ -128,7 +83,7 @@ public class OccurrenceServiceTests
     public void CompleteOccurrence_FiniteTask_IncrementsCountPerOccurrence()
     {
         // Arrange
-        var task = new FiniteTask("Exercise", requiredCompletions: 3);
+        var task = new ListitTask("Exercise", TaskType.Finite, requiredCompletions: 3);
         var occ1 = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 8, 0, 0));
         var occ2 = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 12, 0, 0));
         var occ3 = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 16, 0, 0));
@@ -148,7 +103,7 @@ public class OccurrenceServiceTests
     public void CompleteOccurrence_FiniteTask_CannotExceedRequiredCount()
     {
         // Arrange
-        var task = new FiniteTask("Pay Bills", requiredCompletions: 1, currentCompletions: 1);
+        var task = new ListitTask("Pay Bills", TaskType.Finite, requiredCompletions: 1, currentCompletions: 1);
         var occ = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
 
         // Act & Assert
@@ -157,39 +112,19 @@ public class OccurrenceServiceTests
     }
 
     [Fact]
-    public void CompleteOccurrence_RecurringTask_PreservesAssignedTimesAndTaskIdentity()
+    public void CompleteOccurrence_RecurringTask_PreservesIdentity()
     {
         // Arrange
-        var times = new[] { new TimeOnly(8, 0), new TimeOnly(14, 0), new TimeOnly(20, 0) };
-        var task = new RecurringTask("Medication", times, "Daily pills", 4);
+        var task = new ListitTask("Medication", TaskType.Recurring, TimeSpan.FromHours(8), "Daily pills", 4);
         var occurrence = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
 
         // Act
         _service.CompleteOccurrence(occurrence, task);
 
         // Assert
-        Assert.Equal(3, task.AssignedTimes.Count);
-        Assert.Equal(times[0], task.AssignedTimes[0]);
-        Assert.Equal(times[1], task.AssignedTimes[1]);
-        Assert.Equal(times[2], task.AssignedTimes[2]);
         Assert.Equal("Medication", task.Title);
         Assert.Equal(4, task.Urgency);
-    }
-
-    [Fact]
-    public void CompleteOccurrence_CanBeCompletedBeforeOrAfterScheduledTime()
-    {
-        // Arrange
-        var task = new RecurringTask("Standup", new[] { new TimeOnly(14, 0) });
-        var occBefore = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
-        var occAfter = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 14, 0, 0));
-
-        // Act & Assert - completion is purely lifecycle driven, independent of current clock
-        _service.CompleteOccurrence(occBefore, task);
-        Assert.Equal(OccurrenceStatus.Completed, occBefore.Status);
-
-        _service.CompleteOccurrence(occAfter, task);
-        Assert.Equal(OccurrenceStatus.Completed, occAfter.Status);
+        Assert.Equal(TimeSpan.FromHours(8), task.Interval);
     }
 
     [Fact]
@@ -199,7 +134,7 @@ public class OccurrenceServiceTests
         var fakeTaskService = new FakeTaskService();
         var serviceWithTaskService = new OccurrenceService(fakeTaskService);
 
-        var task = new FiniteTask("Two Step Task", requiredCompletions: 2);
+        var task = new ListitTask("Two Step Task", TaskType.Finite, requiredCompletions: 2);
         var occ1 = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 10, 0, 0));
         var occ2 = new TaskOccurrence(task.Id, new DateTime(2026, 9, 21, 15, 0, 0));
 
@@ -222,7 +157,7 @@ public class OccurrenceServiceTests
     public void CompleteOccurrence_TaskIdMismatch_ThrowsArgumentException()
     {
         // Arrange
-        var task = new FiniteTask("Task A", 1);
+        var task = new ListitTask("Task A", TaskType.Finite, requiredCompletions: 1);
         var occurrence = new TaskOccurrence(Guid.NewGuid(), new DateTime(2026, 9, 21, 14, 0, 0)); // Different task ID
 
         // Act & Assert

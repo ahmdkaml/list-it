@@ -35,7 +35,7 @@ public class OccurrenceService : IOccurrenceService
         occurrence.MarkMissed();
     }
 
-    public void CompleteOccurrence(TaskOccurrence occurrence, TaskBase task)
+    public void CompleteOccurrence(TaskOccurrence occurrence, ListitTask task)
     {
         if (occurrence == null) throw new ArgumentNullException(nameof(occurrence));
         if (task == null) throw new ArgumentNullException(nameof(task));
@@ -48,24 +48,29 @@ public class OccurrenceService : IOccurrenceService
         // 1. Complete the occurrence (enforces Pending state, rejects if already Completed or Missed)
         occurrence.Complete();
 
-        // 2. If it is a finite task, record completion exactly once
-        if (task is FiniteTask finiteTask)
+        // 2. If it is a finite task, record completion and delete if target reached
+        if (task.Type == TaskType.Finite)
         {
-            finiteTask.RecordCompletion();
+            task.RecordCompletion();
 
             // 3. Delegate application-level completion policy if task service is present
             if (_taskService != null)
             {
-                if (finiteTask.CurrentCompletions >= finiteTask.RequiredCompletions)
+                if (task.CurrentCompletions >= task.RequiredCompletions)
                 {
-                    _taskService.DeleteTask(finiteTask.Id);
+                    _taskService.DeleteTask(task.Id);
                 }
                 else
                 {
-                    _taskService.UpdateTask(finiteTask);
+                    _taskService.UpdateTask(task);
                 }
             }
         }
-        // Recurring tasks: AssignedTimes and task identity remain unchanged.
+        else
+        {
+            // Recurring task: records completion and persists without deleting
+            task.RecordCompletion();
+            _taskService?.UpdateTask(task);
+        }
     }
 }

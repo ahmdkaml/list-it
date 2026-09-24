@@ -32,10 +32,11 @@ public class TaskServiceSuppressionTests : IDisposable
     public void CreateRecurringTask_WithBypassTrue_SetsBypassPrioritySuppressionTrue()
     {
         // Act
-        var task = _service.CreateRecurringTask(
-            "VIP Task",
-            new[] { new TimeOnly(9, 30) },
-            "Priority bypass",
+        var task = _service.CreateTask(
+            title: "VIP Task",
+            type: TaskType.Recurring,
+            interval: TimeSpan.FromDays(1),
+            description: "Priority bypass",
             urgency: 5,
             bypassPrioritySuppression: true);
 
@@ -51,12 +52,13 @@ public class TaskServiceSuppressionTests : IDisposable
     public void CreateFiniteTask_WithBypassTrue_SetsBypassPrioritySuppressionTrue()
     {
         // Act
-        var task = _service.CreateFiniteTask(
-            "Critical Milestone",
-            requiredCompletions: 1,
+        var task = _service.CreateTask(
+            title: "Critical Milestone",
+            type: TaskType.Finite,
+            interval: TimeSpan.FromDays(1),
             description: "Must not be suppressed",
             urgency: 6,
-            dueAt: DateTime.UtcNow.AddDays(1),
+            requiredCompletions: 1,
             bypassPrioritySuppression: true);
 
         // Assert
@@ -71,9 +73,9 @@ public class TaskServiceSuppressionTests : IDisposable
     public void UpdateTask_CanModifyBypassPrioritySuppression()
     {
         // Arrange
-        var task = _service.CreateRecurringTask(
-            "Flexible Task",
-            new[] { new TimeOnly(11, 0) },
+        var task = _service.CreateTask(
+            title: "Flexible Task",
+            type: TaskType.Recurring,
             bypassPrioritySuppression: false);
 
         Assert.False(task.BypassPrioritySuppression);

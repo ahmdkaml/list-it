@@ -16,7 +16,7 @@ public class JsonTaskRepository : ITaskRepository
 {
     private readonly string _filePath;
     private readonly object _lock = new();
-    private readonly Dictionary<Guid, TaskBase> _tasks = new();
+    private readonly Dictionary<Guid, ListitTask> _tasks = new();
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
         WriteIndented = true
@@ -34,7 +34,7 @@ public class JsonTaskRepository : ITaskRepository
         return Path.Combine(localAppData, "ListIt", "tasks.json");
     }
 
-    public IReadOnlyList<TaskBase> GetAll()
+    public IReadOnlyList<ListitTask> GetAll()
     {
         lock (_lock)
         {
@@ -42,7 +42,7 @@ public class JsonTaskRepository : ITaskRepository
         }
     }
 
-    public TaskBase? GetById(Guid id)
+    public ListitTask? GetById(Guid id)
     {
         lock (_lock)
         {
@@ -50,7 +50,7 @@ public class JsonTaskRepository : ITaskRepository
         }
     }
 
-    public void Add(TaskBase task)
+    public void Add(ListitTask task)
     {
         if (task == null)
         {
@@ -69,7 +69,7 @@ public class JsonTaskRepository : ITaskRepository
         }
     }
 
-    public void Update(TaskBase task)
+    public void Update(ListitTask task)
     {
         if (task == null)
         {

@@ -12,12 +12,12 @@ namespace ListIt.Core.Scheduling;
 /// </summary>
 public class OccurrenceGenerator : IOccurrenceGenerator
 {
-    public IReadOnlyList<TaskOccurrence> Generate(TaskBase task, DateOnly date)
+    public IReadOnlyList<TaskOccurrence> Generate(ListitTask task, DateOnly date)
     {
         return Generate(task, date, date);
     }
 
-    public IReadOnlyList<TaskOccurrence> Generate(TaskBase task, DateOnly startDate, DateOnly endDate)
+    public IReadOnlyList<TaskOccurrence> Generate(ListitTask task, DateOnly startDate, DateOnly endDate)
     {
         if (task == null)
         {
@@ -29,32 +29,39 @@ public class OccurrenceGenerator : IOccurrenceGenerator
             throw new ArgumentException("Start date cannot be after end date.", nameof(startDate));
         }
 
-        if (task is RecurringTask recurringTask)
+        if (task.Type == TaskType.Recurring)
         {
             var occurrences = new List<TaskOccurrence>();
+            var windowStart = startDate.ToDateTime(TimeOnly.MinValue);
+            var windowEnd = endDate.ToDateTime(TimeOnly.MaxValue);
 
-            for (var currentDate = startDate; currentDate <= endDate; currentDate = currentDate.AddDays(1))
+            if (windowEnd < task.StartTime || task.Interval <= TimeSpan.Zero)
             {
-                foreach (var time in recurringTask.AssignedTimes)
-                {
-                    var scheduledAt = new DateTime(
-                        currentDate.Year,
-                        currentDate.Month,
-                        currentDate.Day,
-                        time.Hour,
-                        time.Minute,
-                        time.Second,
-                        DateTimeKind.Unspecified);
+                return Array.Empty<TaskOccurrence>();
+            }
 
-                    occurrences.Add(new TaskOccurrence(recurringTask.Id, scheduledAt));
+            var current = task.StartTime;
+            if (current < windowStart)
+            {
+                var diffTicks = (windowStart - current).Ticks;
+                var intervals = diffTicks / task.Interval.Ticks;
+                current = current.AddTicks(intervals * task.Interval.Ticks);
+                if (current < windowStart)
+                {
+                    current = current.Add(task.Interval);
                 }
             }
 
-            // Order deterministically by scheduled date and time ascending
+            while (current <= windowEnd)
+            {
+                occurrences.Add(new TaskOccurrence(task.Id, current));
+                current = current.Add(task.Interval);
+            }
+
             return occurrences.OrderBy(o => o.ScheduledAt).ToList().AsReadOnly();
         }
 
-        // Finite tasks do not have an automatic recurring schedule in Phase 2.2 (deferred per specification)
+        // Finite tasks do not have recurring schedules across dates; their occurrences are tracked per deadline
         return Array.Empty<TaskOccurrence>();
     }
 }
