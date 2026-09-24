@@ -39,10 +39,8 @@ public class NotificationEngine : INotificationEngine
             ? context.ScheduledAt - context.CurrentTime
             : TimeSpan.Zero;
 
-        // Terminal occurrences or upcoming occurrences never produce notification output
-        if (context.Occurrence.Status is OccurrenceStatus.Completed or OccurrenceStatus.Missed ||
-            context.SchedulingState == SchedulingState.Upcoming ||
-            context.CurrentTime < context.ScheduledAt)
+        // Terminal occurrences never produce notification output
+        if (context.Occurrence.Status is OccurrenceStatus.Completed or OccurrenceStatus.Missed)
         {
             return NotificationDecision.DoNotNotify(
                 taskId: context.TaskId,
