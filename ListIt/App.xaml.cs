@@ -54,8 +54,8 @@ public partial class App : Application
         var occurrenceService = new OccurrenceService(taskService);
         var schedulingRuntime = new SchedulingRuntime(taskService, generator, scheduler, occurrenceService);
 
-        // 4. Composition root: Notification Engine (Phase 3)
-        var notificationTimingPolicy = new NotificationTimingPolicy();
+        // 4. Composition root: Notification Engine (Phase 3 & Issue #92)
+        var notificationTimingPolicy = new HalvingNotificationTimingPolicy();
         var notificationSuppressionPolicy = new NotificationSuppressionPolicy();
         var notificationPresentationPolicy = new NotificationPresentationPolicy();
         var notificationHistory = new InMemoryNotificationHistory();

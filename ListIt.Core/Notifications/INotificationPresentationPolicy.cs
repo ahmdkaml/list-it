@@ -16,4 +16,6 @@ public interface INotificationPresentationPolicy
     NotificationVisualCategory GetVisualCategory(int urgency);
 
     double CalculateOpacity(int skipCount);
+
+    double CalculateOpacity(int skipCount, int opportunityIndex);
 }

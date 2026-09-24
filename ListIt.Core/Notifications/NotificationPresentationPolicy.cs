@@ -24,7 +24,7 @@ public class NotificationPresentationPolicy : INotificationPresentationPolicy
         if (suppression == null) throw new ArgumentNullException(nameof(suppression));
 
         var visualCategory = GetVisualCategory(context.Urgency);
-        var opacity = CalculateOpacity(context.SkipCount);
+        var opacity = CalculateOpacity(context.SkipCount, opportunity.OpportunityIndex);
 
         var elapsed = context.CurrentTime > context.ScheduledAt
             ? context.CurrentTime - context.ScheduledAt
@@ -92,17 +92,28 @@ public class NotificationPresentationPolicy : INotificationPresentationPolicy
 
     public double CalculateOpacity(int skipCount)
     {
+        return CalculateOpacity(skipCount, 0);
+    }
+
+    public double CalculateOpacity(int skipCount, int opportunityIndex)
+    {
         if (skipCount < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(skipCount), skipCount, "Skip count cannot be negative.");
         }
 
-        if (skipCount <= 1)
+        if (opportunityIndex < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(opportunityIndex), opportunityIndex, "Opportunity index cannot be negative.");
+        }
+
+        var step = Math.Max(opportunityIndex, skipCount > 1 ? skipCount - 1 : 0);
+        if (step <= 0)
         {
             return BaselineOpacity;
         }
 
-        var calculated = BaselineOpacity + (skipCount - 1) * OpacityStepPerSkip;
+        var calculated = BaselineOpacity + step * OpacityStepPerSkip;
         return Math.Clamp(calculated, BaselineOpacity, MaxOpacity);
     }
 }
