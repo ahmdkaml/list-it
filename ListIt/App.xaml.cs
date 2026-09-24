@@ -22,6 +22,7 @@ public partial class App : Application
     private ISingleInstanceManager? _singleInstanceManager;
     private ISchedulerRuntime? _schedulerRuntime;
     private IStartupManager? _startupManager;
+    private IWindowsToastNotifier? _toastNotifier;
     private ShellOptions _shellOptions = new();
 
     protected override async void OnStartup(StartupEventArgs e)
@@ -71,9 +72,20 @@ public partial class App : Application
             taskService,
             notificationHistory);
 
-        // 6. Composition root: Windows Notification Presenter (Phase 4.1 & 4.3)
+        // 6. Composition root: Windows Toast Notifier & Notification Presenter (Phase 4.1, 4.3 & Issue #94)
+        _toastNotifier = new WindowsToastNotifier(
+            actionHandler: notificationActionHandler,
+            onActivateApplication: () =>
+            {
+                if (MainWindow is MainWindow mw)
+                {
+                    Dispatcher.BeginInvoke(mw.RestoreAndActivate);
+                }
+            });
+
         var notificationPresenter = new WindowsNotificationPresenter(
-            actionHandler: notificationActionHandler);
+            actionHandler: notificationActionHandler,
+            toastNotifier: _toastNotifier);
 
         // 7. Composition root: Continuous Scheduler Runtime (Phase 4.4)
         _schedulerRuntime = new SchedulerRuntime(
@@ -104,6 +116,7 @@ public partial class App : Application
             await _schedulerRuntime.StopAsync();
         }
 
+        _toastNotifier?.Dispose();
         _singleInstanceManager?.Dispose();
 
         if (MainWindow is MainWindow mw)
