@@ -13,6 +13,7 @@ public class MainViewModel : ViewModelBase
 {
     private readonly ITaskService _taskService;
     private readonly ListIt.Core.Scheduling.ISchedulingRuntime? _schedulingRuntime;
+    private readonly ITaskScoringService _scoringService;
     private TaskItemViewModel? _selectedTask;
     private bool _isEditorOpen;
     private string? _errorMessage;
@@ -20,6 +21,7 @@ public class MainViewModel : ViewModelBase
     public ObservableCollection<TaskItemViewModel> Tasks { get; } = new();
     public TaskEditorViewModel Editor { get; } = new();
     public ListIt.Core.Scheduling.ISchedulingRuntime? SchedulingRuntime => _schedulingRuntime;
+    public ITaskScoringService ScoringService => _scoringService;
 
     public TaskItemViewModel? SelectedTask
     {
@@ -66,10 +68,14 @@ public class MainViewModel : ViewModelBase
     public Func<string, string, bool> ConfirmDeleteHandler { get; set; } =
         (message, title) => MessageBox.Show(message, title, MessageBoxButton.YesNo, MessageBoxImage.Question) == MessageBoxResult.Yes;
 
-    public MainViewModel(ITaskService taskService, ListIt.Core.Scheduling.ISchedulingRuntime? schedulingRuntime = null)
+    public MainViewModel(
+        ITaskService taskService,
+        ListIt.Core.Scheduling.ISchedulingRuntime? schedulingRuntime = null,
+        ITaskScoringService? scoringService = null)
     {
         _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
         _schedulingRuntime = schedulingRuntime;
+        _scoringService = scoringService ?? new TaskScoringService();
 
         OpenCreateTaskCommand = new RelayCommand(OpenCreateTask);
         OpenEditTaskCommand = new RelayCommand(param => OpenEditTask(param as TaskItemViewModel), param => param is TaskItemViewModel || HasSelectedTask);
@@ -109,6 +115,8 @@ public class MainViewModel : ViewModelBase
             {
                 Tasks.Add(new TaskItemViewModel(task));
             }
+
+            SortTasks();
 
             if (selectedId.HasValue)
             {
@@ -292,6 +300,8 @@ public class MainViewModel : ViewModelBase
                 taskItem.Refresh();
             }
 
+            SortTasks();
+
             OnPropertyChanged(nameof(CanWorkSelectedTask));
             OnPropertyChanged(nameof(CanCompleteSelectedTask));
             OnPropertyChanged(nameof(WorkButtonText));
@@ -304,6 +314,32 @@ public class MainViewModel : ViewModelBase
         else
         {
             Update();
+        }
+    }
+
+    public void SortTasks()
+    {
+        var now = DateTime.UtcNow;
+        foreach (var taskItem in Tasks)
+        {
+            taskItem.Score = _scoringService.CalculateScore(taskItem.Task, now, taskItem.IsWorking);
+        }
+
+        var sorted = Tasks.OrderByDescending(t => t.Score).ToList();
+        var selectedId = SelectedTask?.Id;
+
+        for (int i = 0; i < sorted.Count; i++)
+        {
+            var oldIndex = Tasks.IndexOf(sorted[i]);
+            if (oldIndex != i && oldIndex >= 0)
+            {
+                Tasks.Move(oldIndex, i);
+            }
+        }
+
+        if (selectedId.HasValue)
+        {
+            SelectedTask = Tasks.FirstOrDefault(t => t.Id == selectedId.Value);
         }
     }
 

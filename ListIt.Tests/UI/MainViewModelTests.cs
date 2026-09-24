@@ -310,19 +310,50 @@ public class MainViewModelTests
         vm.SyncEvaluatedStates();
 
         Assert.Null(vm.SelectedTask);
+        var task1 = vm.Tasks[0];
+        var task2 = vm.Tasks[1];
 
         // Act 1: Start work on Task 2 via command parameter
-        vm.WorkTaskCommand.Execute(vm.Tasks[1]);
+        vm.WorkTaskCommand.Execute(task2);
 
-        // Assert 1
-        Assert.False(vm.Tasks[0].IsWorking);
-        Assert.True(vm.Tasks[1].IsWorking);
+        // Assert 1: task2 is working and dynamically boosted to top
+        Assert.False(task1.IsWorking);
+        Assert.True(task2.IsWorking);
+        Assert.Same(task2, vm.Tasks[0]);
 
         // Act 2: Complete Task 1 via command parameter
-        vm.DoneTaskCommand.Execute(vm.Tasks[0]);
+        vm.DoneTaskCommand.Execute(task1);
 
         // Assert 2
-        Assert.Equal(ListIt.Core.Scheduling.SchedulingState.Completed, vm.Tasks[0].SchedulingState);
-        Assert.True(vm.Tasks[1].IsWorking);
+        Assert.Equal(ListIt.Core.Scheduling.SchedulingState.Completed, task1.SchedulingState);
+        Assert.True(task2.IsWorking);
+    }
+
+    [Fact]
+    public void SortTasks_OrdersTasksByScoreDescending_AndPreservesSelectedTask()
+    {
+        // Arrange: Task 1 low urgency, Task 2 high urgency
+        var initial = new ListitTask[]
+        {
+            new ListitTask("Low Urgency", TaskType.Recurring, urgency: 1),
+            new ListitTask("High Urgency", TaskType.Recurring, urgency: 5)
+        };
+        var service = new FakeTaskService(initial);
+        var vm = new MainViewModel(service);
+
+        // Act: Task with higher urgency should have higher score and be at index 0
+        Assert.Equal("High Urgency", vm.Tasks[0].Title);
+        Assert.Equal("Low Urgency", vm.Tasks[1].Title);
+
+        // Select the lower one
+        vm.SelectedTask = vm.Tasks[1];
+        Assert.Equal("Low Urgency", vm.SelectedTask.Title);
+
+        // Re-sort
+        vm.SortTasks();
+
+        // Selection should be preserved
+        Assert.NotNull(vm.SelectedTask);
+        Assert.Equal("Low Urgency", vm.SelectedTask.Title);
     }
 }
