@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using ListIt.Core.Models;
 using ListIt.UI.ViewModels.Common;
 
@@ -7,9 +6,9 @@ namespace ListIt.UI.ViewModels;
 
 public class TaskItemViewModel : ViewModelBase
 {
-    private readonly TaskBase _task;
+    private readonly ListitTask _task;
 
-    public TaskItemViewModel(TaskBase task)
+    public TaskItemViewModel(ListitTask task)
     {
         _task = task ?? throw new ArgumentNullException(nameof(task));
     }
@@ -73,16 +72,37 @@ public class TaskItemViewModel : ViewModelBase
         _ => _task.Type.ToString()
     };
 
-    public string DetailsDisplay => _task switch
+    public string DetailsDisplay
     {
-        RecurringTask r => r.AssignedTimes.Count > 0
-            ? string.Join(", ", r.AssignedTimes.Select(t => t.ToString("HH:mm")))
-            : "No schedule",
-        FiniteTask f => $"{f.CurrentCompletions} / {f.RequiredCompletions} completed • Due: {FormatDueAt(f.DueAt)}",
-        _ => string.Empty
-    };
+        get
+        {
+            var intervalStr = FormatInterval(_task.Interval);
+            var passesStr = _task.Passes > 0 ? $" • Passes: {_task.Passes}" : string.Empty;
 
-    public TaskBase Task => _task;
+            if (_task.Type == TaskType.Finite)
+            {
+                var deadlineStr = FormatDueAt(_task.GetNextDeadlineUtc());
+                return $"{_task.CurrentCompletions} / {_task.RequiredCompletions} completed • Due: {deadlineStr}{passesStr}";
+            }
+
+            return $"Every {intervalStr}{passesStr}";
+        }
+    }
+
+    public ListitTask Task => _task;
+
+    private static string FormatInterval(TimeSpan interval)
+    {
+        if (interval.TotalDays >= 1 && interval.TotalHours % 24 == 0)
+        {
+            return interval.TotalDays == 1 ? "1 day" : $"{(int)interval.TotalDays} days";
+        }
+        if (interval.TotalHours >= 1 && interval.TotalMinutes % 60 == 0)
+        {
+            return interval.TotalHours == 1 ? "1 hour" : $"{(int)interval.TotalHours} hours";
+        }
+        return $"{(int)interval.TotalMinutes} mins";
+    }
 
     private static string FormatDueAt(DateTime utcDueAt)
     {

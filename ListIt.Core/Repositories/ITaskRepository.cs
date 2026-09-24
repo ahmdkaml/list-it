@@ -10,9 +10,9 @@ namespace ListIt.Core.Repositories;
 /// </summary>
 public interface ITaskRepository
 {
-    IReadOnlyList<TaskBase> GetAll();
-    TaskBase? GetById(Guid id);
-    void Add(TaskBase task);
-    void Update(TaskBase task);
+    IReadOnlyList<ListitTask> GetAll();
+    ListitTask? GetById(Guid id);
+    void Add(ListitTask task);
+    void Update(ListitTask task);
     bool Delete(Guid id);
 }

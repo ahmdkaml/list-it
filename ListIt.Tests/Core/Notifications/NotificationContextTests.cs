@@ -12,11 +12,11 @@ public class NotificationContextTests
     public void Constructor_ValidArguments_InitializesPropertiesCorrectly()
     {
         // Arrange
-        var task = new RecurringTask("Morning Sync", new[] { new TimeOnly(9, 0) }, "Standup meeting", 3, bypassPrioritySuppression: true);
+        var task = new ListitTask("Morning Sync", TaskType.Recurring, TimeSpan.FromDays(1), "Standup meeting", 3, bypassPrioritySuppression: true);
         var scheduledAt = new DateTime(2026, 9, 21, 9, 0, 0);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = new DateTime(2026, 9, 21, 9, 0, 0);
-        var workingTask = new FiniteTask("Critical Bug", requiredCompletions: 1, urgency: 5);
+        var workingTask = new ListitTask("Critical Bug", TaskType.Finite, requiredCompletions: 1, urgency: 5);
 
         // Act
         var context = new NotificationContext(
@@ -58,7 +58,7 @@ public class NotificationContextTests
     [Fact]
     public void Constructor_NullOccurrence_ThrowsArgumentNullException()
     {
-        var task = new RecurringTask("Task", new[] { new TimeOnly(9, 0) });
+        var task = new ListitTask("Task", TaskType.Recurring);
 
         Assert.Throws<ArgumentNullException>(() =>
             new NotificationContext(task, null!, DateTime.UtcNow, SchedulingState.Upcoming));
@@ -67,7 +67,7 @@ public class NotificationContextTests
     [Fact]
     public void Constructor_TaskIdMismatch_ThrowsArgumentException()
     {
-        var task = new RecurringTask("Task 1", new[] { new TimeOnly(9, 0) });
+        var task = new ListitTask("Task 1", TaskType.Recurring);
         var otherTaskId = Guid.NewGuid();
         var occurrence = new TaskOccurrence(otherTaskId, DateTime.UtcNow);
 
@@ -79,7 +79,7 @@ public class NotificationContextTests
     [Fact]
     public void Constructor_NegativeSkipCount_ThrowsArgumentOutOfRangeException()
     {
-        var task = new RecurringTask("Task", new[] { new TimeOnly(9, 0) });
+        var task = new ListitTask("Task", TaskType.Recurring);
         var occurrence = new TaskOccurrence(task.Id, DateTime.UtcNow);
 
         Assert.Throws<ArgumentOutOfRangeException>(() =>
@@ -90,8 +90,8 @@ public class NotificationContextTests
     public void BypassPrioritySuppression_ReflectsEvaluatedTaskSetting()
     {
         // Arrange
-        var bypassedTask = new RecurringTask("Bypassed", new[] { new TimeOnly(10, 0) }, bypassPrioritySuppression: true);
-        var normalTask = new RecurringTask("Normal", new[] { new TimeOnly(10, 0) }, bypassPrioritySuppression: false);
+        var bypassedTask = new ListitTask("Bypassed", TaskType.Recurring, bypassPrioritySuppression: true);
+        var normalTask = new ListitTask("Normal", TaskType.Recurring, bypassPrioritySuppression: false);
 
         var occBypassed = new TaskOccurrence(bypassedTask.Id, DateTime.UtcNow);
         var occNormal = new TaskOccurrence(normalTask.Id, DateTime.UtcNow);
@@ -109,7 +109,7 @@ public class NotificationContextTests
     public void WorkingState_ReflectsOccurrenceWorkingState()
     {
         // Arrange
-        var task = new RecurringTask("Task", new[] { new TimeOnly(9, 0) });
+        var task = new ListitTask("Task", TaskType.Recurring);
         var occurrence = new TaskOccurrence(task.Id, DateTime.UtcNow);
 
         var contextBefore = new NotificationContext(task, occurrence, DateTime.UtcNow, SchedulingState.Due);
@@ -127,7 +127,7 @@ public class NotificationContextTests
     public void ActiveWorkingTask_WhenNull_HasActiveWorkingTaskIsFalse()
     {
         // Arrange
-        var task = new RecurringTask("Task", new[] { new TimeOnly(9, 0) });
+        var task = new ListitTask("Task", TaskType.Recurring);
         var occurrence = new TaskOccurrence(task.Id, DateTime.UtcNow);
 
         // Act
@@ -143,7 +143,7 @@ public class NotificationContextTests
     public void Determinism_IdenticalInputs_ProducesIdenticalProperties()
     {
         // Arrange
-        var task = new RecurringTask("Daily Review", new[] { new TimeOnly(8, 30) }, urgency: 4);
+        var task = new ListitTask("Daily Review", TaskType.Recurring, TimeSpan.FromDays(1), urgency: 4);
         var time = new DateTime(2026, 9, 21, 8, 30, 0);
         var occurrence = new TaskOccurrence(task.Id, time);
 

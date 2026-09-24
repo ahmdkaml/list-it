@@ -20,7 +20,7 @@ public class NotificationSuppressionPolicyTests
     public void Evaluate_NoActiveWorkingTask_ReturnsAllowedNoActiveWork()
     {
         // Arrange
-        var candidateTask = new RecurringTask("Candidate", new[] { new TimeOnly(10, 0) }, urgency: 2);
+        var candidateTask = new ListitTask("Candidate", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(candidateTask.Id, DateTime.Today.AddHours(10));
         var context = new NotificationContext(
             candidateTask,
@@ -43,8 +43,8 @@ public class NotificationSuppressionPolicyTests
     public void Evaluate_CandidateUrgencyHigherThanWorkingTask_ReturnsAllowedHigherPriority()
     {
         // Arrange
-        var candidateTask = new RecurringTask("Candidate Urgency 4", new[] { new TimeOnly(10, 0) }, urgency: 4);
-        var workingTask = new RecurringTask("Working Urgency 2", new[] { new TimeOnly(9, 0) }, urgency: 2);
+        var candidateTask = new ListitTask("Candidate Urgency 4", TaskType.Recurring, urgency: 4);
+        var workingTask = new ListitTask("Working Urgency 2", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(candidateTask.Id, DateTime.Today.AddHours(10));
         var context = new NotificationContext(
             candidateTask,
@@ -67,8 +67,8 @@ public class NotificationSuppressionPolicyTests
     public void Evaluate_CandidateUrgencyEqualToWorkingTask_ReturnsAllowedEqualPriority()
     {
         // Arrange - Equal priority must NOT be suppressed
-        var candidateTask = new RecurringTask("Candidate Urgency 3", new[] { new TimeOnly(10, 0) }, urgency: 3);
-        var workingTask = new RecurringTask("Working Urgency 3", new[] { new TimeOnly(9, 0) }, urgency: 3);
+        var candidateTask = new ListitTask("Candidate Urgency 3", TaskType.Recurring, urgency: 3);
+        var workingTask = new ListitTask("Working Urgency 3", TaskType.Recurring, urgency: 3);
         var occurrence = new TaskOccurrence(candidateTask.Id, DateTime.Today.AddHours(10));
         var context = new NotificationContext(
             candidateTask,
@@ -91,8 +91,8 @@ public class NotificationSuppressionPolicyTests
     public void Evaluate_CandidateUrgencyLowerThanWorkingTask_ReturnsSuppressedByPriority()
     {
         // Arrange
-        var candidateTask = new RecurringTask("Candidate Urgency 2", new[] { new TimeOnly(10, 0) }, urgency: 2);
-        var workingTask = new RecurringTask("Working Urgency 5", new[] { new TimeOnly(9, 0) }, urgency: 5);
+        var candidateTask = new ListitTask("Candidate Urgency 2", TaskType.Recurring, urgency: 2);
+        var workingTask = new ListitTask("Working Urgency 5", TaskType.Recurring, urgency: 5);
         var occurrence = new TaskOccurrence(candidateTask.Id, DateTime.Today.AddHours(10));
         var context = new NotificationContext(
             candidateTask,
@@ -115,8 +115,8 @@ public class NotificationSuppressionPolicyTests
     public void Evaluate_CandidateWithBypassPrioritySuppression_ReturnsAllowedEvenIfLowerUrgency()
     {
         // Arrange - Candidate has lower urgency (1 vs 6), but BypassPrioritySuppression is true
-        var candidateTask = new RecurringTask("Candidate Urgency 1 Bypass", new[] { new TimeOnly(10, 0) }, urgency: 1, bypassPrioritySuppression: true);
-        var workingTask = new RecurringTask("Working Urgency 6", new[] { new TimeOnly(9, 0) }, urgency: 6);
+        var candidateTask = new ListitTask("Candidate Urgency 1 Bypass", TaskType.Recurring, urgency: 1, bypassPrioritySuppression: true);
+        var workingTask = new ListitTask("Working Urgency 6", TaskType.Recurring, urgency: 6);
         var occurrence = new TaskOccurrence(candidateTask.Id, DateTime.Today.AddHours(10));
         var context = new NotificationContext(
             candidateTask,
@@ -143,8 +143,8 @@ public class NotificationSuppressionPolicyTests
         // The currently working task's BypassPrioritySuppression setting has NO effect.
 
         // Case A: Working task has bypass=true, candidate has bypass=false -> Candidate is SUPPRESSED
-        var candidateA = new RecurringTask("Candidate Urgency 2 Normal", new[] { new TimeOnly(10, 0) }, urgency: 2, bypassPrioritySuppression: false);
-        var workingA = new RecurringTask("Working Urgency 5 Bypass", new[] { new TimeOnly(9, 0) }, urgency: 5, bypassPrioritySuppression: true);
+        var candidateA = new ListitTask("Candidate Urgency 2 Normal", TaskType.Recurring, urgency: 2, bypassPrioritySuppression: false);
+        var workingA = new ListitTask("Working Urgency 5 Bypass", TaskType.Recurring, urgency: 5, bypassPrioritySuppression: true);
         var occA = new TaskOccurrence(candidateA.Id, DateTime.Today.AddHours(10));
         var contextA = new NotificationContext(candidateA, occA, DateTime.Today.AddHours(11), SchedulingState.Overdue, activeWorkingTask: workingA);
 
@@ -153,8 +153,8 @@ public class NotificationSuppressionPolicyTests
         Assert.Equal(NotificationSuppressionPolicy.ReasonSuppressedByPriority, resultA.Reason);
 
         // Case B: Working task has bypass=false, candidate has bypass=true -> Candidate is ALLOWED
-        var candidateB = new RecurringTask("Candidate Urgency 2 Bypass", new[] { new TimeOnly(10, 0) }, urgency: 2, bypassPrioritySuppression: true);
-        var workingB = new RecurringTask("Working Urgency 5 Normal", new[] { new TimeOnly(9, 0) }, urgency: 5, bypassPrioritySuppression: false);
+        var candidateB = new ListitTask("Candidate Urgency 2 Bypass", TaskType.Recurring, urgency: 2, bypassPrioritySuppression: true);
+        var workingB = new ListitTask("Working Urgency 5 Normal", TaskType.Recurring, urgency: 5, bypassPrioritySuppression: false);
         var occB = new TaskOccurrence(candidateB.Id, DateTime.Today.AddHours(10));
         var contextB = new NotificationContext(candidateB, occB, DateTime.Today.AddHours(11), SchedulingState.Overdue, activeWorkingTask: workingB);
 
@@ -173,7 +173,7 @@ public class NotificationSuppressionPolicyTests
         var engine = new NotificationEngine(timingPolicy, suppressionPolicy, history);
 
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 1", new[] { new TimeOnly(10, 0) }, urgency: 1);
+        var candidateTask = new ListitTask("Candidate Urgency 1", TaskType.Recurring, urgency: 1);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(60); // 100% threshold reached
 
@@ -199,8 +199,8 @@ public class NotificationSuppressionPolicyTests
         var engine = new NotificationEngine(timingPolicy, suppressionPolicy, history);
 
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var candidateTask = new RecurringTask("Candidate Urgency 1", new[] { new TimeOnly(10, 0) }, urgency: 1);
-        var workingTask = new RecurringTask("Working Urgency 5", new[] { new TimeOnly(9, 0) }, urgency: 5);
+        var candidateTask = new ListitTask("Candidate Urgency 1", TaskType.Recurring, urgency: 1);
+        var workingTask = new ListitTask("Working Urgency 5", TaskType.Recurring, urgency: 5);
         var occurrence = new TaskOccurrence(candidateTask.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(60); // 100% threshold reached
 

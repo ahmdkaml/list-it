@@ -18,7 +18,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange - Urgency 1 threshold is 100% (60m)
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 1 Task", new[] { new TimeOnly(10, 0) }, urgency: 1);
+        var task = new ListitTask("Urgency 1 Task", TaskType.Recurring, urgency: 1);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(59); // 59m < 60m
 
@@ -38,7 +38,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 1 Task", new[] { new TimeOnly(10, 0) }, urgency: 1);
+        var task = new ListitTask("Urgency 1 Task", TaskType.Recurring, urgency: 1);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(60); // Exact 100% threshold
 
@@ -62,7 +62,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 1 Task", new[] { new TimeOnly(10, 0) }, urgency: 1);
+        var task = new ListitTask("Urgency 1 Task", TaskType.Recurring, urgency: 1);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(75);
 
@@ -89,7 +89,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange - Urgency 2 has thresholds at 50% (30m) and 100% (60m)
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 2 Task", new[] { new TimeOnly(10, 0) }, urgency: 2);
+        var task = new ListitTask("Urgency 2 Task", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
 
         // 1. Before 50% (29 minutes)
@@ -137,7 +137,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange - Urgency 2 (30m and 60m), evaluated for the first time at 65m
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 2 Task", new[] { new TimeOnly(10, 0) }, urgency: 2);
+        var task = new ListitTask("Urgency 2 Task", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(65);
 
@@ -159,7 +159,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange - 60 minute lapse = 3600 seconds = 3,600,000 ms. 50% = 1,800,000 ms (30m)
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Urgency 2", new[] { new TimeOnly(10, 0) }, urgency: 2);
+        var task = new ListitTask("Urgency 2", TaskType.Recurring, urgency: 2);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
 
         // 1 ms before ScheduledAt
@@ -190,7 +190,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 14, 0, 0);
-        var task = new RecurringTask("Future Task", new[] { new TimeOnly(14, 0) }, urgency: 5);
+        var task = new ListitTask("Future Task", TaskType.Recurring, urgency: 5);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(-30);
 
@@ -209,7 +209,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Completed Task", new[] { new TimeOnly(10, 0) }, urgency: 6);
+        var task = new ListitTask("Completed Task", TaskType.Recurring, urgency: 6);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         occurrence.Complete();
 
@@ -229,7 +229,7 @@ public class NotificationTimingPolicyTests
     {
         // Arrange
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Missed Task", new[] { new TimeOnly(10, 0) }, urgency: 4);
+        var task = new ListitTask("Missed Task", TaskType.Recurring, urgency: 4);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         occurrence.MarkMissed();
 
@@ -255,7 +255,7 @@ public class NotificationTimingPolicyTests
         var customPolicyEngine = new NotificationTimingPolicy(customPolicies);
 
         var scheduledAt = new DateTime(2026, 9, 21, 10, 0, 0);
-        var task = new RecurringTask("Custom Task", new[] { new TimeOnly(10, 0) }, urgency: 3);
+        var task = new ListitTask("Custom Task", TaskType.Recurring, urgency: 3);
         var occurrence = new TaskOccurrence(task.Id, scheduledAt);
         var currentTime = scheduledAt.AddMinutes(30); // 50% of 60m
 

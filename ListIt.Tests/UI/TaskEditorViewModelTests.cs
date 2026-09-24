@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 using ListIt.Core.Models;
 using ListIt.UI.ViewModels;
 using Xunit;
@@ -23,16 +22,15 @@ public class TaskEditorViewModelTests
         Assert.False(vm.IsFinite);
         Assert.Equal(string.Empty, vm.Title);
         Assert.Equal(1, vm.Urgency);
-        Assert.Single(vm.AssignedTimes);
-        Assert.Equal(new TimeOnly(9, 0), vm.AssignedTimes[0]);
+        Assert.Equal("1d", vm.IntervalString);
+        Assert.Equal(1, vm.RequiredCompletions);
     }
 
     [Fact]
     public void LoadForEdit_RecurringTask_PopulatesProperties()
     {
         // Arrange
-        var times = new[] { new TimeOnly(8, 0), new TimeOnly(17, 30) };
-        var task = new RecurringTask("Morning Sync", times, "Daily standup", 3);
+        var task = new ListitTask("Morning Sync", TaskType.Recurring, TimeSpan.FromHours(12), "Daily standup", 3);
         var vm = new TaskEditorViewModel();
 
         // Act
@@ -45,14 +43,14 @@ public class TaskEditorViewModelTests
         Assert.Equal("Daily standup", vm.Description);
         Assert.Equal(3, vm.Urgency);
         Assert.Equal(TaskType.Recurring, vm.SelectedType);
-        Assert.Equal(2, vm.AssignedTimes.Count);
+        Assert.Equal("12h", vm.IntervalString);
     }
 
     [Fact]
     public void LoadForEdit_FiniteTask_PopulatesProperties()
     {
         // Arrange
-        var task = new FiniteTask("Submit Report", 5, 2, "Monthly accounting", 5);
+        var task = new ListitTask("Submit Report", TaskType.Finite, TimeSpan.FromDays(2), "Monthly accounting", 5, requiredCompletions: 5, currentCompletions: 2);
         var vm = new TaskEditorViewModel();
 
         // Act
@@ -66,50 +64,7 @@ public class TaskEditorViewModelTests
         Assert.Equal(5, vm.Urgency);
         Assert.Equal(TaskType.Finite, vm.SelectedType);
         Assert.Equal(5, vm.RequiredCompletions);
-    }
-
-    [Fact]
-    public void AddTimeCommand_AddsValidTime_AndRejectsInvalidOrDuplicate()
-    {
-        // Arrange
-        var vm = new TaskEditorViewModel();
-        vm.LoadForCreate();
-        Assert.Single(vm.AssignedTimes); // Has 09:00
-
-        // Act - Add new time
-        vm.NewTimeString = "14:30";
-        vm.AddTimeCommand.Execute(null);
-
-        // Assert
-        Assert.Equal(2, vm.AssignedTimes.Count);
-        Assert.Contains(new TimeOnly(14, 30), vm.AssignedTimes);
-
-        // Act - Add duplicate time
-        vm.NewTimeString = "14:30";
-        vm.AddTimeCommand.Execute(null);
-        Assert.Equal(2, vm.AssignedTimes.Count);
-        Assert.NotNull(vm.ErrorMessage);
-
-        // Act - Add invalid format
-        vm.NewTimeString = "not-a-time";
-        vm.AddTimeCommand.Execute(null);
-        Assert.Equal(2, vm.AssignedTimes.Count);
-        Assert.NotNull(vm.ErrorMessage);
-    }
-
-    [Fact]
-    public void RemoveTimeCommand_RemovesSelectedTime()
-    {
-        // Arrange
-        var vm = new TaskEditorViewModel();
-        vm.LoadForCreate();
-        var time = vm.AssignedTimes.First();
-
-        // Act
-        vm.RemoveTimeCommand.Execute(time);
-
-        // Assert
-        Assert.Empty(vm.AssignedTimes);
+        Assert.Equal("2d", vm.IntervalString);
     }
 
     [Fact]
@@ -120,8 +75,9 @@ public class TaskEditorViewModelTests
         vm.LoadForCreate();
         vm.Title = "Valid Recurring";
         vm.Urgency = 2;
+        vm.IntervalString = "1d";
 
-        TaskBase? savedTask = null;
+        ListitTask? savedTask = null;
         vm.TaskSaved += (s, t) => savedTask = t;
 
         // Act
@@ -129,9 +85,10 @@ public class TaskEditorViewModelTests
 
         // Assert
         Assert.NotNull(savedTask);
-        var recurring = Assert.IsType<RecurringTask>(savedTask);
-        Assert.Equal("Valid Recurring", recurring.Title);
-        Assert.Equal(2, recurring.Urgency);
+        Assert.Equal("Valid Recurring", savedTask.Title);
+        Assert.Equal(2, savedTask.Urgency);
+        Assert.Equal(TaskType.Recurring, savedTask.Type);
+        Assert.Equal(TimeSpan.FromDays(1), savedTask.Interval);
     }
 
     [Fact]
@@ -144,8 +101,9 @@ public class TaskEditorViewModelTests
         vm.Title = "Valid Finite";
         vm.RequiredCompletions = 4;
         vm.Urgency = 6;
+        vm.IntervalString = "6h";
 
-        TaskBase? savedTask = null;
+        ListitTask? savedTask = null;
         vm.TaskSaved += (s, t) => savedTask = t;
 
         // Act
@@ -153,10 +111,11 @@ public class TaskEditorViewModelTests
 
         // Assert
         Assert.NotNull(savedTask);
-        var finite = Assert.IsType<FiniteTask>(savedTask);
-        Assert.Equal("Valid Finite", finite.Title);
-        Assert.Equal(4, finite.RequiredCompletions);
-        Assert.Equal(6, finite.Urgency);
+        Assert.Equal("Valid Finite", savedTask.Title);
+        Assert.Equal(4, savedTask.RequiredCompletions);
+        Assert.Equal(6, savedTask.Urgency);
+        Assert.Equal(TaskType.Finite, savedTask.Type);
+        Assert.Equal(TimeSpan.FromHours(6), savedTask.Interval);
     }
 
     [Theory]
@@ -180,14 +139,17 @@ public class TaskEditorViewModelTests
         Assert.NotNull(vm.ErrorMessage);
     }
 
-    [Fact]
-    public void SaveCommand_RecurringWithNoTimes_SetsErrorMessage()
+    [Theory]
+    [InlineData("invalid-interval")]
+    [InlineData("-5d")]
+    [InlineData("0h")]
+    public void SaveCommand_InvalidInterval_SetsErrorMessage(string invalidInterval)
     {
         // Arrange
         var vm = new TaskEditorViewModel();
         vm.LoadForCreate();
         vm.Title = "Task";
-        vm.AssignedTimes.Clear();
+        vm.IntervalString = invalidInterval;
 
         var wasSaved = false;
         vm.TaskSaved += (s, t) => wasSaved = true;
@@ -201,58 +163,14 @@ public class TaskEditorViewModelTests
     }
 
     [Fact]
-    public void SaveCommand_ValidFiniteTask_WithNoDueTime_DefaultsToOneDay()
+    public void SaveCommand_FiniteTask_WithInvalidRequiredCompletions_SetsErrorMessage()
     {
         // Arrange
         var vm = new TaskEditorViewModel();
         vm.LoadForCreate();
         vm.SelectedType = TaskType.Finite;
-        vm.Title = "Finite Default Due";
-        vm.FiniteDueTimeString = string.Empty;
-
-        TaskBase? savedTask = null;
-        vm.TaskSaved += (s, t) => savedTask = t;
-
-        // Act
-        vm.SaveCommand.Execute(null);
-
-        // Assert
-        Assert.NotNull(savedTask);
-        var finite = Assert.IsType<FiniteTask>(savedTask);
-        Assert.Equal(finite.CreatedAt.AddDays(1), finite.DueAt);
-    }
-
-    [Fact]
-    public void SaveCommand_ValidFiniteTask_WithCustomDueTime_SetsDueAt()
-    {
-        // Arrange
-        var vm = new TaskEditorViewModel();
-        vm.LoadForCreate();
-        vm.SelectedType = TaskType.Finite;
-        vm.Title = "Finite Custom Due";
-        vm.FiniteDueTimeString = "2028-12-31 23:59";
-
-        TaskBase? savedTask = null;
-        vm.TaskSaved += (s, t) => savedTask = t;
-
-        // Act
-        vm.SaveCommand.Execute(null);
-
-        // Assert
-        Assert.NotNull(savedTask);
-        var finite = Assert.IsType<FiniteTask>(savedTask);
-        Assert.Equal(new DateTime(2028, 12, 31, 23, 59, 0, DateTimeKind.Local).ToUniversalTime(), finite.DueAt);
-    }
-
-    [Fact]
-    public void SaveCommand_FiniteTask_WithInvalidDueTime_SetsErrorMessage()
-    {
-        // Arrange
-        var vm = new TaskEditorViewModel();
-        vm.LoadForCreate();
-        vm.SelectedType = TaskType.Finite;
-        vm.Title = "Finite Invalid Due";
-        vm.FiniteDueTimeString = "not-a-valid-time-format";
+        vm.Title = "Finite Zero Count";
+        vm.RequiredCompletions = 0;
 
         var wasSaved = false;
         vm.TaskSaved += (s, t) => wasSaved = true;
@@ -268,44 +186,35 @@ public class TaskEditorViewModelTests
     [Fact]
     public void LoadForCreate_SetsBypassPrioritySuppressionToFalse()
     {
-        // Arrange & Act
         var vm = new TaskEditorViewModel();
         vm.LoadForCreate();
-
-        // Assert
         Assert.False(vm.BypassPrioritySuppression);
     }
 
     [Fact]
     public void LoadForEdit_SetsBypassPrioritySuppressionFromTask()
     {
-        // Arrange
-        var task = new RecurringTask("Urgent", new[] { new TimeOnly(10, 0) }, bypassPrioritySuppression: true);
+        var task = new ListitTask("Urgent", TaskType.Recurring, bypassPrioritySuppression: true);
         var vm = new TaskEditorViewModel();
 
-        // Act
         vm.LoadForEdit(task);
 
-        // Assert
         Assert.True(vm.BypassPrioritySuppression);
     }
 
     [Fact]
     public void SaveCommand_PropagatesBypassPrioritySuppression_ToCreatedTask()
     {
-        // Arrange
         var vm = new TaskEditorViewModel();
         vm.LoadForCreate();
         vm.Title = "Bypass Enabled";
         vm.BypassPrioritySuppression = true;
 
-        TaskBase? savedTask = null;
+        ListitTask? savedTask = null;
         vm.TaskSaved += (s, t) => savedTask = t;
 
-        // Act
         vm.SaveCommand.Execute(null);
 
-        // Assert
         Assert.NotNull(savedTask);
         Assert.True(savedTask.BypassPrioritySuppression);
     }

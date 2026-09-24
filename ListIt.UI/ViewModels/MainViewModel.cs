@@ -38,7 +38,7 @@ public class MainViewModel : ViewModelBase
 
     public bool HasSelectedTask => SelectedTask != null;
     public bool CanWorkSelectedTask => SelectedTask != null && (SelectedTask.IsWorking || SelectedTask.HasPendingOccurrence);
-    public bool CanCompleteSelectedTask => SelectedTask != null && (SelectedTask.HasPendingOccurrence || (_schedulingRuntime == null && SelectedTask.Task is FiniteTask));
+    public bool CanCompleteSelectedTask => SelectedTask != null && (SelectedTask.HasPendingOccurrence || (_schedulingRuntime == null && SelectedTask.Task.Type == TaskType.Finite));
     public string WorkButtonText => SelectedTask?.IsWorking == true ? "Stop" : "Work";
 
     public bool IsEditorOpen
@@ -82,7 +82,7 @@ public class MainViewModel : ViewModelBase
 
         DoneTaskCommand = new RelayCommand(
             param => CompleteTask(param as TaskItemViewModel),
-            param => param is TaskItemViewModel item ? (item.HasPendingOccurrence || (_schedulingRuntime == null && item.Task is FiniteTask)) : CanCompleteSelectedTask);
+            param => param is TaskItemViewModel item ? (item.HasPendingOccurrence || (_schedulingRuntime == null && item.Task.Type == TaskType.Finite)) : CanCompleteSelectedTask);
 
         Editor.TaskSaved += Editor_TaskSaved;
         Editor.Cancelled += Editor_Cancelled;
@@ -176,16 +176,16 @@ public class MainViewModel : ViewModelBase
                 }
             }
 
-            if (item.Task is FiniteTask finite)
+            if (item.Task.Type == TaskType.Finite)
             {
-                finite.RecordCompletion();
-                if (finite.CurrentCompletions >= finite.RequiredCompletions)
+                item.Task.RecordCompletion();
+                if (item.Task.CurrentCompletions >= item.Task.RequiredCompletions)
                 {
-                    _taskService.DeleteTask(finite.Id);
+                    _taskService.DeleteTask(item.Task.Id);
                 }
                 else
                 {
-                    _taskService.UpdateTask(finite);
+                    _taskService.UpdateTask(item.Task);
                 }
                 LoadTasks();
                 _schedulingRuntime?.EvaluateNow();
@@ -232,7 +232,7 @@ public class MainViewModel : ViewModelBase
             {
                 foreach (var taskItem in Tasks)
                 {
-                    taskItem.HasPendingOccurrence = taskItem.Task is FiniteTask f && f.CurrentCompletions < f.RequiredCompletions;
+                    taskItem.HasPendingOccurrence = taskItem.Task.Type == TaskType.Finite && taskItem.Task.CurrentCompletions < taskItem.Task.RequiredCompletions;
                 }
                 OnPropertyChanged(nameof(CanWorkSelectedTask));
                 OnPropertyChanged(nameof(CanCompleteSelectedTask));
@@ -356,7 +356,7 @@ public class MainViewModel : ViewModelBase
         }
     }
 
-    private void Editor_TaskSaved(object? sender, TaskBase task)
+    private void Editor_TaskSaved(object? sender, ListitTask task)
     {
         try
         {
@@ -368,14 +368,15 @@ public class MainViewModel : ViewModelBase
             }
             else
             {
-                if (task is RecurringTask recurring)
-                {
-                    _taskService.CreateRecurringTask(recurring.Title, recurring.AssignedTimes, recurring.Description, recurring.Urgency, recurring.BypassPrioritySuppression);
-                }
-                else if (task is FiniteTask finite)
-                {
-                    _taskService.CreateFiniteTask(finite.Title, finite.RequiredCompletions, finite.Description, finite.Urgency, finite.DueAt, finite.BypassPrioritySuppression);
-                }
+                _taskService.CreateTask(
+                    task.Title,
+                    task.Type,
+                    task.Interval,
+                    task.Description,
+                    task.Urgency,
+                    task.StartTime,
+                    task.RequiredCompletions,
+                    task.BypassPrioritySuppression);
             }
 
             IsEditorOpen = false;

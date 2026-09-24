@@ -10,9 +10,9 @@ public class EvaluatedOccurrence
 {
     public TaskOccurrence Occurrence { get; }
     public SchedulingState State { get; }
-    public TaskBase Task { get; }
+    public ListitTask Task { get; }
 
-    public EvaluatedOccurrence(TaskOccurrence occurrence, SchedulingState state, TaskBase task)
+    public EvaluatedOccurrence(TaskOccurrence occurrence, SchedulingState state, ListitTask task)
     {
         Occurrence = occurrence ?? throw new ArgumentNullException(nameof(occurrence));
         State = state;

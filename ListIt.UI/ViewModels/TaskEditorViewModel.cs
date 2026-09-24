@@ -1,6 +1,4 @@
 using System;
-using System.Collections.ObjectModel;
-using System.Linq;
 using System.Windows.Input;
 using ListIt.Core.Models;
 using ListIt.UI.ViewModels.Common;
@@ -11,19 +9,18 @@ public class TaskEditorViewModel : ViewModelBase
 {
     private bool _isEditing;
     private Guid? _existingTaskId;
-    private DateTime _existingCreatedAt;
+    private DateTime _existingStartTime;
     private int _existingCurrentCompletions;
+    private int _existingPasses;
     private TaskType _selectedType;
     private string _title = string.Empty;
     private string _description = string.Empty;
     private int _urgency = 1;
-    private string _newTimeString = "09:00";
+    private string _startTimeString = string.Empty;
+    private string _intervalString = "1d";
     private int _requiredCompletions = 1;
-    private string _finiteDueTimeString = string.Empty;
     private bool _bypassPrioritySuppression;
     private string? _errorMessage;
-
-    public ObservableCollection<TimeOnly> AssignedTimes { get; } = new();
 
     public bool BypassPrioritySuppression
     {
@@ -84,10 +81,16 @@ public class TaskEditorViewModel : ViewModelBase
         set => SetProperty(ref _urgency, value);
     }
 
-    public string NewTimeString
+    public string StartTimeString
     {
-        get => _newTimeString;
-        set => SetProperty(ref _newTimeString, value);
+        get => _startTimeString;
+        set => SetProperty(ref _startTimeString, value);
+    }
+
+    public string IntervalString
+    {
+        get => _intervalString;
+        set => SetProperty(ref _intervalString, value);
     }
 
     public int RequiredCompletions
@@ -96,30 +99,20 @@ public class TaskEditorViewModel : ViewModelBase
         set => SetProperty(ref _requiredCompletions, value);
     }
 
-    public string FiniteDueTimeString
-    {
-        get => _finiteDueTimeString;
-        set => SetProperty(ref _finiteDueTimeString, value);
-    }
-
     public string? ErrorMessage
     {
         get => _errorMessage;
         set => SetProperty(ref _errorMessage, value);
     }
 
-    public ICommand AddTimeCommand { get; }
-    public ICommand RemoveTimeCommand { get; }
     public ICommand SaveCommand { get; }
     public ICommand CancelCommand { get; }
 
-    public event EventHandler<TaskBase>? TaskSaved;
+    public event EventHandler<ListitTask>? TaskSaved;
     public event EventHandler? Cancelled;
 
     public TaskEditorViewModel()
     {
-        AddTimeCommand = new RelayCommand(AddTime);
-        RemoveTimeCommand = new RelayCommand(RemoveTime);
         SaveCommand = new RelayCommand(Save);
         CancelCommand = new RelayCommand(() => Cancelled?.Invoke(this, EventArgs.Empty));
 
@@ -130,81 +123,38 @@ public class TaskEditorViewModel : ViewModelBase
     {
         IsEditing = false;
         _existingTaskId = null;
-        _existingCreatedAt = DateTime.UtcNow;
+        _existingStartTime = DateTime.UtcNow;
         _existingCurrentCompletions = 0;
+        _existingPasses = 0;
         SelectedType = TaskType.Recurring;
         Title = string.Empty;
         Description = string.Empty;
         Urgency = 1;
-        NewTimeString = "09:00";
+        StartTimeString = string.Empty;
+        IntervalString = "1d";
         RequiredCompletions = 1;
-        FiniteDueTimeString = string.Empty;
         BypassPrioritySuppression = false;
         ErrorMessage = null;
-
-        AssignedTimes.Clear();
-        AssignedTimes.Add(new TimeOnly(9, 0));
     }
 
-    public void LoadForEdit(TaskBase task)
+    public void LoadForEdit(ListitTask task)
     {
         if (task == null) throw new ArgumentNullException(nameof(task));
 
         IsEditing = true;
         _existingTaskId = task.Id;
-        _existingCreatedAt = task.CreatedAt;
+        _existingStartTime = task.StartTime;
+        _existingCurrentCompletions = task.CurrentCompletions;
+        _existingPasses = task.Passes;
         SelectedType = task.Type;
         Title = task.Title;
         Description = task.Description;
         Urgency = task.Urgency;
         BypassPrioritySuppression = task.BypassPrioritySuppression;
+        StartTimeString = task.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+        IntervalString = FormatInterval(task.Interval);
+        RequiredCompletions = task.RequiredCompletions;
         ErrorMessage = null;
-
-        AssignedTimes.Clear();
-        if (task is RecurringTask recurring)
-        {
-            foreach (var time in recurring.AssignedTimes)
-            {
-                AssignedTimes.Add(time);
-            }
-            _existingCurrentCompletions = 0;
-            RequiredCompletions = 1;
-            FiniteDueTimeString = string.Empty;
-        }
-        else if (task is FiniteTask finite)
-        {
-            _existingCurrentCompletions = finite.CurrentCompletions;
-            RequiredCompletions = finite.RequiredCompletions;
-            FiniteDueTimeString = finite.DueAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
-        }
-    }
-
-    private void AddTime()
-    {
-        if (TimeOnly.TryParse(NewTimeString, out var parsed))
-        {
-            if (!AssignedTimes.Contains(parsed))
-            {
-                AssignedTimes.Add(parsed);
-                ErrorMessage = null;
-            }
-            else
-            {
-                ErrorMessage = "Time already added.";
-            }
-        }
-        else
-        {
-            ErrorMessage = "Invalid time format (use HH:mm).";
-        }
-    }
-
-    private void RemoveTime(object? parameter)
-    {
-        if (parameter is TimeOnly time)
-        {
-            AssignedTimes.Remove(time);
-        }
     }
 
     private void Save()
@@ -223,71 +173,59 @@ public class TaskEditorViewModel : ViewModelBase
             return;
         }
 
+        if (!TryParseInterval(IntervalString, out var interval))
+        {
+            ErrorMessage = "Invalid interval (e.g. '1d', '4h', '30m').";
+            return;
+        }
+
+        if (!TryParseStartTime(StartTimeString, out var startTimeUtc))
+        {
+            ErrorMessage = "Invalid start time (e.g. '09:00', 'yyyy-MM-dd HH:mm', or leave blank for now).";
+            return;
+        }
+
+        if (SelectedType == TaskType.Finite && RequiredCompletions < 1)
+        {
+            ErrorMessage = "Required completions must be at least 1.";
+            return;
+        }
+
+        if (IsEditing && SelectedType == TaskType.Finite && RequiredCompletions < _existingCurrentCompletions)
+        {
+            ErrorMessage = $"Required completions cannot be less than current ({_existingCurrentCompletions}).";
+            return;
+        }
+
         try
         {
-            TaskBase resultTask;
-
-            if (SelectedType == TaskType.Recurring)
+            ListitTask resultTask;
+            if (IsEditing && ExistingTaskId.HasValue)
             {
-                if (AssignedTimes.Count == 0)
-                {
-                    ErrorMessage = "Recurring task must have at least one assigned time.";
-                    return;
-                }
-
-                if (IsEditing && ExistingTaskId.HasValue)
-                {
-                    resultTask = new RecurringTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, AssignedTimes, BypassPrioritySuppression);
-                }
-                else
-                {
-                    resultTask = new RecurringTask(Title, AssignedTimes, Description, Urgency, BypassPrioritySuppression);
-                }
+                resultTask = new ListitTask(
+                    id: ExistingTaskId.Value,
+                    title: Title,
+                    type: SelectedType,
+                    interval: interval,
+                    description: Description,
+                    urgency: Urgency,
+                    startTime: startTimeUtc,
+                    requiredCompletions: RequiredCompletions,
+                    currentCompletions: _existingCurrentCompletions,
+                    passes: _existingPasses,
+                    bypassPrioritySuppression: BypassPrioritySuppression);
             }
             else
             {
-                if (RequiredCompletions < 1)
-                {
-                    ErrorMessage = "Required completions must be at least 1.";
-                    return;
-                }
-
-                DateTime? dueAt = null;
-                if (!string.IsNullOrWhiteSpace(FiniteDueTimeString))
-                {
-                    if (TimeOnly.TryParse(FiniteDueTimeString, out var timeOnly))
-                    {
-                        var todayTime = DateTime.Today.Add(timeOnly.ToTimeSpan());
-                        var localTime = todayTime <= DateTime.Now ? todayTime.AddDays(1) : todayTime;
-                        dueAt = DateTime.SpecifyKind(localTime, DateTimeKind.Local).ToUniversalTime();
-                    }
-                    else if (DateTime.TryParse(FiniteDueTimeString, out var dateTime))
-                    {
-                        dueAt = dateTime.Kind == DateTimeKind.Unspecified
-                            ? DateTime.SpecifyKind(dateTime, DateTimeKind.Local).ToUniversalTime()
-                            : dateTime.ToUniversalTime();
-                    }
-                    else
-                    {
-                        ErrorMessage = "Invalid due time (e.g. '18:00' or 'yyyy-MM-dd HH:mm', or leave blank for 1 day).";
-                        return;
-                    }
-                }
-
-                if (IsEditing && ExistingTaskId.HasValue)
-                {
-                    if (RequiredCompletions < _existingCurrentCompletions)
-                    {
-                        ErrorMessage = $"Required completions cannot be less than current ({_existingCurrentCompletions}).";
-                        return;
-                    }
-
-                    resultTask = new FiniteTask(ExistingTaskId.Value, Title, Description, Urgency, _existingCreatedAt, RequiredCompletions, _existingCurrentCompletions, dueAt, BypassPrioritySuppression);
-                }
-                else
-                {
-                    resultTask = new FiniteTask(Title, RequiredCompletions, currentCompletions: 0, description: Description, urgency: Urgency, dueAt: dueAt, bypassPrioritySuppression: BypassPrioritySuppression);
-                }
+                resultTask = new ListitTask(
+                    title: Title,
+                    type: SelectedType,
+                    interval: interval,
+                    description: Description,
+                    urgency: Urgency,
+                    startTime: startTimeUtc,
+                    requiredCompletions: RequiredCompletions,
+                    bypassPrioritySuppression: BypassPrioritySuppression);
             }
 
             TaskSaved?.Invoke(this, resultTask);
@@ -296,5 +234,96 @@ public class TaskEditorViewModel : ViewModelBase
         {
             ErrorMessage = ex.Message;
         }
+    }
+
+    public static bool TryParseInterval(string? input, out TimeSpan interval)
+    {
+        interval = TimeSpan.FromDays(1);
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return true;
+        }
+
+        var trimmed = input.Trim().ToLowerInvariant();
+
+        if (TimeSpan.TryParse(trimmed, out interval) && interval > TimeSpan.Zero)
+        {
+            return true;
+        }
+
+        if (trimmed.EndsWith("days") || trimmed.EndsWith("day") || trimmed.EndsWith("d"))
+        {
+            var numStr = trimmed.TrimEnd('s').TrimEnd('y').TrimEnd('a').TrimEnd('d').Trim();
+            if (double.TryParse(numStr, out var days) && days > 0)
+            {
+                interval = TimeSpan.FromDays(days);
+                return true;
+            }
+        }
+        else if (trimmed.EndsWith("hours") || trimmed.EndsWith("hour") || trimmed.EndsWith("h"))
+        {
+            var numStr = trimmed.TrimEnd('s').TrimEnd('r').TrimEnd('u').TrimEnd('o').TrimEnd('h').Trim();
+            if (double.TryParse(numStr, out var hours) && hours > 0)
+            {
+                interval = TimeSpan.FromHours(hours);
+                return true;
+            }
+        }
+        else if (trimmed.EndsWith("mins") || trimmed.EndsWith("min") || trimmed.EndsWith("m"))
+        {
+            var numStr = trimmed.TrimEnd('s').TrimEnd('n').TrimEnd('i').TrimEnd('m').Trim();
+            if (double.TryParse(numStr, out var mins) && mins > 0)
+            {
+                interval = TimeSpan.FromMinutes(mins);
+                return true;
+            }
+        }
+        else if (double.TryParse(trimmed, out var num) && num > 0)
+        {
+            interval = TimeSpan.FromDays(num);
+            return true;
+        }
+
+        return false;
+    }
+
+    public static bool TryParseStartTime(string? input, out DateTime startTimeUtc)
+    {
+        startTimeUtc = DateTime.UtcNow;
+        if (string.IsNullOrWhiteSpace(input) || input.Trim().Equals("now", StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        var trimmed = input.Trim();
+        if (TimeOnly.TryParse(trimmed, out var timeOnly))
+        {
+            var today = DateTime.Today.Add(timeOnly.ToTimeSpan());
+            startTimeUtc = DateTime.SpecifyKind(today, DateTimeKind.Local).ToUniversalTime();
+            return true;
+        }
+
+        if (DateTime.TryParse(trimmed, out var dt))
+        {
+            startTimeUtc = dt.Kind == DateTimeKind.Unspecified
+                ? DateTime.SpecifyKind(dt, DateTimeKind.Local).ToUniversalTime()
+                : dt.ToUniversalTime();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string FormatInterval(TimeSpan interval)
+    {
+        if (interval.TotalDays >= 1 && interval.TotalHours % 24 == 0)
+        {
+            return $"{(int)interval.TotalDays}d";
+        }
+        if (interval.TotalHours >= 1 && interval.TotalMinutes % 60 == 0)
+        {
+            return $"{(int)interval.TotalHours}h";
+        }
+        return $"{(int)interval.TotalMinutes}m";
     }
 }

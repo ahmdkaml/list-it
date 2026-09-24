@@ -12,29 +12,29 @@ public class TaskServiceTests
 {
     private class InMemoryTaskRepository : ITaskRepository
     {
-        private readonly Dictionary<Guid, TaskBase> _tasks = new();
+        private readonly Dictionary<Guid, ListitTask> _tasks = new();
 
         public int AddCallCount { get; private set; }
         public int UpdateCallCount { get; private set; }
         public int DeleteCallCount { get; private set; }
 
-        public IReadOnlyList<TaskBase> GetAll()
+        public IReadOnlyList<ListitTask> GetAll()
         {
             return _tasks.Values.ToList().AsReadOnly();
         }
 
-        public TaskBase? GetById(Guid id)
+        public ListitTask? GetById(Guid id)
         {
             return _tasks.TryGetValue(id, out var task) ? task : null;
         }
 
-        public void Add(TaskBase task)
+        public void Add(ListitTask task)
         {
             AddCallCount++;
             _tasks[task.Id] = task;
         }
 
-        public void Update(TaskBase task)
+        public void Update(ListitTask task)
         {
             UpdateCallCount++;
             _tasks[task.Id] = task;
@@ -54,15 +54,14 @@ public class TaskServiceTests
     }
 
     [Fact]
-    public void CreateRecurringTask_CreatesDomainModel_AndAddsToRepository()
+    public void CreateTask_Recurring_CreatesDomainModel_AndAddsToRepository()
     {
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        var times = new[] { new TimeOnly(9, 0), new TimeOnly(18, 0) };
 
         // Act
-        var task = service.CreateRecurringTask("Daily Standup", times, "Engineering sync", 3);
+        var task = service.CreateTask("Daily Standup", TaskType.Recurring, TimeSpan.FromDays(1), "Engineering sync", 3);
 
         // Assert
         Assert.NotNull(task);
@@ -70,20 +69,20 @@ public class TaskServiceTests
         Assert.Equal("Daily Standup", task.Title);
         Assert.Equal("Engineering sync", task.Description);
         Assert.Equal(3, task.Urgency);
-        Assert.Equal(2, task.AssignedTimes.Count);
+        Assert.Equal(TimeSpan.FromDays(1), task.Interval);
         Assert.Equal(1, repo.AddCallCount);
         Assert.Same(task, repo.GetById(task.Id));
     }
 
     [Fact]
-    public void CreateFiniteTask_CreatesDomainModel_AndAddsToRepository()
+    public void CreateTask_Finite_CreatesDomainModel_AndAddsToRepository()
     {
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
 
         // Act
-        var task = service.CreateFiniteTask("Submit Timesheet", requiredCompletions: 1, description: "Finance", urgency: 2);
+        var task = service.CreateTask("Submit Timesheet", TaskType.Finite, TimeSpan.FromHours(4), description: "Finance", urgency: 2, requiredCompletions: 1);
 
         // Assert
         Assert.NotNull(task);
@@ -101,8 +100,8 @@ public class TaskServiceTests
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        service.CreateFiniteTask("Task 1", 1);
-        service.CreateRecurringTask("Task 2", new[] { new TimeOnly(10, 0) });
+        service.CreateTask("Task 1", TaskType.Finite, requiredCompletions: 1);
+        service.CreateTask("Task 2", TaskType.Recurring);
 
         // Act
         var all = service.GetAllTasks();
@@ -117,7 +116,7 @@ public class TaskServiceTests
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        var created = service.CreateFiniteTask("Task 1", 1);
+        var created = service.CreateTask("Task 1", TaskType.Finite, requiredCompletions: 1);
 
         // Act
         var found = service.GetTask(created.Id);
@@ -134,7 +133,7 @@ public class TaskServiceTests
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        var task = service.CreateFiniteTask("Original Title", 2);
+        var task = service.CreateTask("Original Title", TaskType.Finite, requiredCompletions: 2);
 
         // Act
         task.SetTitle("Updated Title");
@@ -143,7 +142,7 @@ public class TaskServiceTests
 
         // Assert
         Assert.Equal(1, repo.UpdateCallCount);
-        var updated = service.GetTask(task.Id) as FiniteTask;
+        var updated = service.GetTask(task.Id);
         Assert.NotNull(updated);
         Assert.Equal("Updated Title", updated.Title);
         Assert.Equal(1, updated.CurrentCompletions);
@@ -155,7 +154,7 @@ public class TaskServiceTests
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        var nonExistent = new FiniteTask("Ghost Task", 1);
+        var nonExistent = new ListitTask("Ghost Task", TaskType.Finite, requiredCompletions: 1);
 
         // Act & Assert
         Assert.Throws<KeyNotFoundException>(() => service.UpdateTask(nonExistent));
@@ -179,7 +178,7 @@ public class TaskServiceTests
         // Arrange
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
-        var task = service.CreateFiniteTask("To Delete", 1);
+        var task = service.CreateTask("To Delete", TaskType.Finite, requiredCompletions: 1);
 
         // Act
         var result = service.DeleteTask(task.Id);
@@ -213,8 +212,8 @@ public class TaskServiceTests
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
 
-        Assert.Throws<ArgumentException>(() => service.CreateFiniteTask(invalidTitle, 1));
-        Assert.Throws<ArgumentException>(() => service.CreateRecurringTask(invalidTitle, new[] { new TimeOnly(9, 0) }));
+        Assert.Throws<ArgumentException>(() => service.CreateTask(invalidTitle, TaskType.Finite, requiredCompletions: 1));
+        Assert.Throws<ArgumentException>(() => service.CreateTask(invalidTitle, TaskType.Recurring));
         Assert.Equal(0, repo.AddCallCount);
     }
 
@@ -226,18 +225,8 @@ public class TaskServiceTests
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateFiniteTask("Title", 1, urgency: invalidUrgency));
-        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateRecurringTask("Title", new[] { new TimeOnly(9, 0) }, urgency: invalidUrgency));
-        Assert.Equal(0, repo.AddCallCount);
-    }
-
-    [Fact]
-    public void CreateRecurringTask_EmptyAssignedTimes_ThrowsArgumentException_EnforcingDomain()
-    {
-        var repo = new InMemoryTaskRepository();
-        var service = new TaskService(repo);
-
-        Assert.Throws<ArgumentException>(() => service.CreateRecurringTask("Title", Array.Empty<TimeOnly>()));
+        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateTask("Title", TaskType.Finite, urgency: invalidUrgency, requiredCompletions: 1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateTask("Title", TaskType.Recurring, urgency: invalidUrgency));
         Assert.Equal(0, repo.AddCallCount);
     }
 
@@ -249,7 +238,7 @@ public class TaskServiceTests
         var repo = new InMemoryTaskRepository();
         var service = new TaskService(repo);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateFiniteTask("Title", invalidRequired));
+        Assert.Throws<ArgumentOutOfRangeException>(() => service.CreateTask("Title", TaskType.Finite, requiredCompletions: invalidRequired));
         Assert.Equal(0, repo.AddCallCount);
     }
 }

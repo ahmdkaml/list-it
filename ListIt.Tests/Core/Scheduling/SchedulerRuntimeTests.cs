@@ -126,7 +126,7 @@ public class SchedulerRuntimeTests : IDisposable
     public async Task StartAsync_PerformsImmediateEvaluation()
     {
         // Arrange - Create a task scheduled in the past that should immediately notify
-        _taskService.CreateFiniteTask("Overdue Task", requiredCompletions: 1, urgency: 3, dueAt: _baseTime.AddMinutes(-30));
+        _taskService.CreateTask("Overdue Task", TaskType.Finite, TimeSpan.FromMinutes(30), urgency: 3, startTime: _baseTime.AddMinutes(-60));
 
         // Use a long interval so periodic tick won't fire during test
         var runtime = CreateRuntime(TimeSpan.FromSeconds(60));
@@ -222,7 +222,7 @@ public class SchedulerRuntimeTests : IDisposable
     public async Task NotificationForwarding_AllowedDecision_CallsPresenter()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Notify Task", requiredCompletions: 1, urgency: 3, dueAt: _baseTime.AddMinutes(-30));
+        var task = _taskService.CreateTask("Notify Task", TaskType.Finite, TimeSpan.FromMinutes(30), urgency: 3, startTime: _baseTime.AddMinutes(-60));
         var runtime = CreateRuntime();
 
         // Act - deterministic cycle execution
@@ -242,7 +242,7 @@ public class SchedulerRuntimeTests : IDisposable
     public async Task NotificationForwarding_DoNotNotifyDecision_DoesNotCallPresenter()
     {
         // Arrange - Task is in the future (Upcoming), should not notify
-        _taskService.CreateFiniteTask("Future Task", requiredCompletions: 1, urgency: 2, dueAt: _baseTime.AddHours(2));
+        _taskService.CreateTask("Future Task", TaskType.Finite, TimeSpan.FromHours(2), urgency: 2, startTime: _baseTime);
         var runtime = CreateRuntime();
 
         // Act
@@ -260,7 +260,7 @@ public class SchedulerRuntimeTests : IDisposable
     public async Task DuplicateEvaluation_SameOpportunity_DoesNotDuplicateNotifications()
     {
         // Arrange
-        _taskService.CreateFiniteTask("Single Notify", requiredCompletions: 1, urgency: 3, dueAt: _baseTime.AddMinutes(-30));
+        _taskService.CreateTask("Single Notify", TaskType.Finite, TimeSpan.FromMinutes(30), urgency: 3, startTime: _baseTime.AddMinutes(-60));
         var runtime = CreateRuntime();
 
         // Act - First evaluation emits notification
@@ -280,11 +280,13 @@ public class SchedulerRuntimeTests : IDisposable
     [Fact]
     public async Task TimeJump_EvaluatesAtNewCurrentTimeWithoutReplayingMissedTicks()
     {
-        // Arrange - Recurring task with 10:00 and 10:20 times
-        var task = _taskService.CreateRecurringTask(
+        // Arrange - Recurring task with 20 minute interval starting at 10:00
+        var task = _taskService.CreateTask(
             "Sync",
-            new[] { new TimeOnly(10, 0), new TimeOnly(10, 20) },
-            urgency: 3);
+            TaskType.Recurring,
+            TimeSpan.FromMinutes(20),
+            urgency: 3,
+            startTime: _baseTime);
 
         var runtime = CreateRuntime();
 
@@ -316,7 +318,7 @@ public class SchedulerRuntimeTests : IDisposable
         Assert.Equal(0, emitted1);
 
         // Add a task that evaluates
-        _taskService.CreateFiniteTask("Resilient Task", requiredCompletions: 1, urgency: 3, dueAt: _baseTime.AddMinutes(-30));
+        _taskService.CreateTask("Resilient Task", TaskType.Finite, TimeSpan.FromMinutes(30), urgency: 3, startTime: _baseTime.AddMinutes(-60));
 
         // Cycle 2 evaluates and succeeds
         var emitted2 = await runtime.EvaluateCycleAsync();

@@ -10,10 +10,17 @@ namespace ListIt.Core.Services;
 /// </summary>
 public interface ITaskService
 {
-    IReadOnlyList<TaskBase> GetAllTasks();
-    TaskBase? GetTask(Guid id);
-    RecurringTask CreateRecurringTask(string title, IEnumerable<TimeOnly> assignedTimes, string description = "", int urgency = 1, bool bypassPrioritySuppression = false);
-    FiniteTask CreateFiniteTask(string title, int requiredCompletions, string description = "", int urgency = 1, DateTime? dueAt = null, bool bypassPrioritySuppression = false);
-    void UpdateTask(TaskBase task);
+    IReadOnlyList<ListitTask> GetAllTasks();
+    ListitTask? GetTask(Guid id);
+    ListitTask CreateTask(
+        string title,
+        TaskType type = TaskType.Recurring,
+        TimeSpan? interval = null,
+        string description = "",
+        int urgency = 1,
+        DateTime? startTime = null,
+        int requiredCompletions = 1,
+        bool bypassPrioritySuppression = false);
+    void UpdateTask(ListitTask task);
     bool DeleteTask(Guid id);
 }

@@ -27,8 +27,8 @@ public class TaskSuppressionPersistenceTests : IDisposable
     public void NewlyCreatedTask_DefaultsToBypassPrioritySuppressionFalse()
     {
         // Arrange & Act
-        var recurring = new RecurringTask("Default Task", new[] { new TimeOnly(9, 0) });
-        var finite = new FiniteTask("Default Finite", requiredCompletions: 1);
+        var recurring = new ListitTask("Default Task", TaskType.Recurring);
+        var finite = new ListitTask("Default Finite", TaskType.Finite, requiredCompletions: 1);
 
         // Assert
         Assert.False(recurring.BypassPrioritySuppression);
@@ -40,20 +40,22 @@ public class TaskSuppressionPersistenceTests : IDisposable
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var recurring = new RecurringTask(
-            "Urgent Alerts",
-            new[] { new TimeOnly(10, 0) },
-            "Bypass task",
+        var recurring = new ListitTask(
+            title: "Urgent Alerts",
+            type: TaskType.Recurring,
+            interval: TimeSpan.FromDays(1),
+            description: "Bypass task",
             urgency: 4,
             bypassPrioritySuppression: true);
 
-        var finite = new FiniteTask(
-            "Urgent Deliverable",
-            requiredCompletions: 2,
-            currentCompletions: 0,
+        var finite = new ListitTask(
+            title: "Urgent Deliverable",
+            type: TaskType.Finite,
+            interval: TimeSpan.FromDays(2),
             description: "Finite bypass",
             urgency: 3,
-            dueAt: DateTime.UtcNow.AddDays(2),
+            requiredCompletions: 2,
+            currentCompletions: 0,
             bypassPrioritySuppression: true);
 
         repo.Add(recurring);
@@ -61,8 +63,8 @@ public class TaskSuppressionPersistenceTests : IDisposable
 
         // Act - Reload from disk using new repository instance
         var reloadedRepo = new JsonTaskRepository(_tempFilePath);
-        var loadedRecurring = reloadedRepo.GetById(recurring.Id) as RecurringTask;
-        var loadedFinite = reloadedRepo.GetById(finite.Id) as FiniteTask;
+        var loadedRecurring = reloadedRepo.GetById(recurring.Id);
+        var loadedFinite = reloadedRepo.GetById(finite.Id);
 
         // Assert
         Assert.NotNull(loadedRecurring);
@@ -77,10 +79,11 @@ public class TaskSuppressionPersistenceTests : IDisposable
     {
         // Arrange
         var repo = new JsonTaskRepository(_tempFilePath);
-        var recurring = new RecurringTask(
-            "Normal Task",
-            new[] { new TimeOnly(12, 0) },
-            "Normal task",
+        var recurring = new ListitTask(
+            title: "Normal Task",
+            type: TaskType.Recurring,
+            interval: TimeSpan.FromDays(1),
+            description: "Normal task",
             urgency: 2,
             bypassPrioritySuppression: false);
 

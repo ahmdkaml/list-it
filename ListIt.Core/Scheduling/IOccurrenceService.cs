@@ -11,6 +11,6 @@ public interface IOccurrenceService
 {
     void StartWorking(TaskOccurrence occurrence);
     void StopWorking(TaskOccurrence occurrence);
-    void CompleteOccurrence(TaskOccurrence occurrence, TaskBase task);
+    void CompleteOccurrence(TaskOccurrence occurrence, ListitTask task);
     void MarkOccurrenceMissed(TaskOccurrence occurrence);
 }

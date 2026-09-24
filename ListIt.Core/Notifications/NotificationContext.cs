@@ -10,12 +10,12 @@ namespace ListIt.Core.Notifications;
 /// </summary>
 public class NotificationContext
 {
-    public TaskBase Task { get; }
+    public ListitTask Task { get; }
     public TaskOccurrence Occurrence { get; }
     public DateTime CurrentTime { get; }
     public SchedulingState SchedulingState { get; }
     public int SkipCount { get; }
-    public TaskBase? ActiveWorkingTask { get; }
+    public ListitTask? ActiveWorkingTask { get; }
 
     public Guid TaskId => Task.Id;
     public Guid OccurrenceId => Occurrence.OccurrenceId;
@@ -27,12 +27,12 @@ public class NotificationContext
     public int? ActiveWorkingTaskUrgency => ActiveWorkingTask?.Urgency;
 
     public NotificationContext(
-        TaskBase task,
+        ListitTask task,
         TaskOccurrence occurrence,
         DateTime currentTime,
         SchedulingState schedulingState,
         int skipCount = 0,
-        TaskBase? activeWorkingTask = null)
+        ListitTask? activeWorkingTask = null)
     {
         Task = task ?? throw new ArgumentNullException(nameof(task));
         Occurrence = occurrence ?? throw new ArgumentNullException(nameof(occurrence));

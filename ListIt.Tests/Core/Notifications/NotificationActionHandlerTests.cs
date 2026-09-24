@@ -25,13 +25,14 @@ public class NotificationActionHandlerTests : IDisposable
 
     public NotificationActionHandlerTests()
     {
-        _tempFilePath = Path.Combine(Path.GetTempPath(), $"listit_action_test_{Guid.NewGuid():N}.json");
+        _tempFilePath = Path.Combine(Path.GetTempPath(), $"listit_action_handler_test_{Guid.NewGuid():N}.json");
         _repository = new JsonTaskRepository(_tempFilePath);
         _taskService = new TaskService(_repository);
         _generator = new OccurrenceGenerator();
         _scheduler = new Scheduler();
         _occurrenceService = new OccurrenceService(_taskService);
-        _baseTime = new DateTime(2026, 9, 21, 14, 0, 0);
+
+        _baseTime = new DateTime(2026, 9, 21, 10, 0, 0, DateTimeKind.Utc);
 
         _runtime = new SchedulingRuntime(
             _taskService,
@@ -41,11 +42,7 @@ public class NotificationActionHandlerTests : IDisposable
             clock: () => _baseTime);
 
         _history = new InMemoryNotificationHistory();
-
-        _handler = new NotificationActionHandler(
-            _runtime,
-            _taskService,
-            _history);
+        _handler = new NotificationActionHandler(_runtime, _taskService, _history);
     }
 
     public void Dispose()
@@ -61,7 +58,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void WorkAction_TransitionsOccurrenceToWorking_AndPersists()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Report", requiredCompletions: 1, urgency: 2, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Report", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 2, startTime: _baseTime);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -84,7 +81,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void WorkAction_DoubleClicks_AreIdempotent_AndDoNotThrow()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Report", requiredCompletions: 1, urgency: 2, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Report", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 2, startTime: _baseTime);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -109,7 +106,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void DoneAction_FiniteTask_CompletesOccurrence_IncrementsCount_AndPersists()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Workout", requiredCompletions: 2, urgency: 2, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Workout", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 2, startTime: _baseTime, requiredCompletions: 2);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -124,7 +121,7 @@ public class NotificationActionHandlerTests : IDisposable
         Assert.True(result.StateChanged);
         Assert.Equal(OccurrenceStatus.Completed, occ.Status);
 
-        var updatedTask = (FiniteTask)_taskService.GetTask(task.Id)!;
+        var updatedTask = _taskService.GetTask(task.Id)!;
         Assert.Equal(1, updatedTask.CurrentCompletions);
     }
 
@@ -132,7 +129,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void DoneAction_FiniteTask_DeletesTaskWhenRequiredCountReached()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Quick errand", requiredCompletions: 1, urgency: 2, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Quick errand", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 2, startTime: _baseTime, requiredCompletions: 1);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -155,12 +152,11 @@ public class NotificationActionHandlerTests : IDisposable
     public void DoneAction_RecurringTask_CompletesOccurrence_AndPreservesSchedule()
     {
         // Arrange
-        var times = new[] { new TimeOnly(14, 0), new TimeOnly(18, 0) };
-        var task = _taskService.CreateRecurringTask("Daily Routine", times, urgency: 2);
+        var task = _taskService.CreateTask("Daily Routine", TaskType.Recurring, TimeSpan.FromHours(4), urgency: 2, startTime: _baseTime);
         var evaluations = _runtime.EvaluateNow();
-        var occ14 = evaluations.First(e => e.Occurrence.ScheduledAt.Hour == 14).Occurrence;
+        var occ = evaluations.First(e => e.Task.Id == task.Id).Occurrence;
 
-        var context = new NotificationActionContext(task.Id, occ14.OccurrenceId, NotificationAction.Done);
+        var context = new NotificationActionContext(task.Id, occ.OccurrenceId, NotificationAction.Done);
 
         // Act
         var result = _handler.Handle(context);
@@ -169,19 +165,19 @@ public class NotificationActionHandlerTests : IDisposable
         Assert.Equal(NotificationActionStatus.Success, result.Status);
         Assert.True(result.ShouldClosePopup);
         Assert.True(result.StateChanged);
-        Assert.Equal(OccurrenceStatus.Completed, occ14.Status);
+        Assert.Equal(OccurrenceStatus.Completed, occ.Status);
 
         // Recurring task still exists with schedule intact
-        var preservedTask = (RecurringTask)_taskService.GetTask(task.Id)!;
+        var preservedTask = _taskService.GetTask(task.Id)!;
         Assert.NotNull(preservedTask);
-        Assert.Equal(2, preservedTask.AssignedTimes.Count);
+        Assert.Equal(TimeSpan.FromHours(4), preservedTask.Interval);
     }
 
     [Fact]
     public void DoneAction_DoubleClicks_AreIdempotent_AndDoNotDoubleCount()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Double Check", requiredCompletions: 3, urgency: 2, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Double Check", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 2, startTime: _baseTime, requiredCompletions: 3);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -200,7 +196,7 @@ public class NotificationActionHandlerTests : IDisposable
         Assert.True(result2.ShouldClosePopup);
         Assert.False(result2.StateChanged);
 
-        var taskAfter = (FiniteTask)_taskService.GetTask(task.Id)!;
+        var taskAfter = _taskService.GetTask(task.Id)!;
         Assert.Equal(1, taskAfter.CurrentCompletions); // Still 1, NOT 2
     }
 
@@ -208,7 +204,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void DismissAction_ClosesPopup_LeavesOccurrencePending_AndDoesNotIncrementCount()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Optional Read", requiredCompletions: 2, urgency: 1, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Optional Read", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 1, startTime: _baseTime, requiredCompletions: 2);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -227,7 +223,7 @@ public class NotificationActionHandlerTests : IDisposable
         Assert.False(occ.IsWorking);
 
         // Count unchanged
-        var taskAfter = (FiniteTask)_taskService.GetTask(task.Id)!;
+        var taskAfter = _taskService.GetTask(task.Id)!;
         Assert.Equal(0, taskAfter.CurrentCompletions);
     }
 
@@ -235,7 +231,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void DismissAction_WithOpportunityIndex_RecordsEmittedInHistory()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Reminder", requiredCompletions: 1, urgency: 1, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Reminder", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 1, startTime: _baseTime, requiredCompletions: 1);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -259,7 +255,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void StaleNotification_CompletedOccurrence_FailsSafelyAndClosesPopup()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Stale", requiredCompletions: 1, urgency: 1, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Stale", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 1, startTime: _baseTime, requiredCompletions: 1);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
         occ.MarkMissed(); // Manually set to Missed (stale)
@@ -279,7 +275,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void DeletedTask_FailsSafelyAndClosesPopup_WithoutException()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("To Delete", requiredCompletions: 1, urgency: 1, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("To Delete", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 1, startTime: _baseTime, requiredCompletions: 1);
         var evaluations = _runtime.EvaluateNow();
         var occ = evaluations.Single(e => e.Task.Id == task.Id).Occurrence;
 
@@ -301,7 +297,7 @@ public class NotificationActionHandlerTests : IDisposable
     public void UnknownOccurrence_FailsSafelyAndClosesPopup()
     {
         // Arrange
-        var task = _taskService.CreateFiniteTask("Existing Task", requiredCompletions: 1, urgency: 1, dueAt: _baseTime.AddMinutes(10));
+        var task = _taskService.CreateTask("Existing Task", TaskType.Finite, TimeSpan.FromMinutes(10), urgency: 1, startTime: _baseTime, requiredCompletions: 1);
         var context = new NotificationActionContext(task.Id, Guid.NewGuid(), NotificationAction.Work);
 
         // Act

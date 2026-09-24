@@ -125,9 +125,9 @@ public class SchedulingRuntime : ISchedulingRuntime
             {
                 List<TaskOccurrence> occurrences = new();
 
-                if (task is RecurringTask recurring)
+                if (task.Type == TaskType.Recurring)
                 {
-                    var generated = _generator.Generate(recurring, currentDate);
+                    var generated = _generator.Generate(task, currentDate);
                     foreach (var occ in generated)
                     {
                         if (_trackedOccurrences.TryGetValue(occ.LogicalKey, out var existing))
@@ -141,13 +141,13 @@ public class SchedulingRuntime : ISchedulingRuntime
                         }
                     }
                 }
-                else if (task is FiniteTask finite)
+                else if (task.Type == TaskType.Finite)
                 {
-                    if (finite.CurrentCompletions < finite.RequiredCompletions)
+                    if (task.CurrentCompletions < task.RequiredCompletions)
                     {
                         // Stagger scheduledAt by CurrentCompletions seconds so each sequential completion has a unique LogicalKey
-                        var scheduledAt = finite.DueAt.AddSeconds(finite.CurrentCompletions);
-                        var key = TaskOccurrence.GetLogicalKey(finite.Id, scheduledAt);
+                        var scheduledAt = task.GetNextDeadlineUtc().AddSeconds(task.CurrentCompletions);
+                        var key = TaskOccurrence.GetLogicalKey(task.Id, scheduledAt);
 
                         if (_trackedOccurrences.TryGetValue(key, out var existing))
                         {
@@ -155,7 +155,7 @@ public class SchedulingRuntime : ISchedulingRuntime
                         }
                         else
                         {
-                            var occ = new TaskOccurrence(finite.Id, scheduledAt);
+                            var occ = new TaskOccurrence(task.Id, scheduledAt);
                             _trackedOccurrences[key] = occ;
                             occurrences.Add(occ);
                         }
