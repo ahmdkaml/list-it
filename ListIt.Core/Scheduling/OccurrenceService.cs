@@ -29,10 +29,16 @@ public class OccurrenceService : IOccurrenceService
         occurrence.StopWorking();
     }
 
-    public void MarkOccurrenceMissed(TaskOccurrence occurrence)
+    public void MarkOccurrenceMissed(TaskOccurrence occurrence, ListitTask? task = null)
     {
         if (occurrence == null) throw new ArgumentNullException(nameof(occurrence));
         occurrence.MarkMissed();
+
+        if (task != null)
+        {
+            task.RecordPass();
+            _taskService?.UpdateTask(task);
+        }
     }
 
     public void CompleteOccurrence(TaskOccurrence occurrence, ListitTask task)
@@ -62,14 +68,16 @@ public class OccurrenceService : IOccurrenceService
                 }
                 else
                 {
+                    task.ResetInterval(occurrence.ScheduledAt);
                     _taskService.UpdateTask(task);
                 }
             }
         }
         else
         {
-            // Recurring task: records completion and persists without deleting
+            // Recurring task: records completion, resets interval, and persists without deleting
             task.RecordCompletion();
+            task.ResetInterval(occurrence.ScheduledAt);
             _taskService?.UpdateTask(task);
         }
     }

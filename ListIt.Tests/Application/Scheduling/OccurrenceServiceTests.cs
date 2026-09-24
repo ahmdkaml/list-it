@@ -180,4 +180,48 @@ public class OccurrenceServiceTests
         Assert.Throws<InvalidOperationException>(() => _service.StartWorking(missedOcc));
         Assert.Throws<InvalidOperationException>(() => _service.StopWorking(missedOcc));
     }
+
+    [Fact]
+    public void MarkOccurrenceMissed_WithTask_IncrementsTaskPassCountAndUpdatesService()
+    {
+        // Arrange
+        var fakeTaskService = new FakeTaskService();
+        var serviceWithTaskService = new OccurrenceService(fakeTaskService);
+        var task = new ListitTask("Missable Task", TaskType.Recurring, TimeSpan.FromHours(1));
+        var occ = new TaskOccurrence(task.Id, DateTime.UtcNow.AddHours(-1));
+        Assert.Equal(0, task.PassCount);
+
+        // Act
+        serviceWithTaskService.MarkOccurrenceMissed(occ, task);
+
+        // Assert
+        Assert.Equal(OccurrenceStatus.Missed, occ.Status);
+        Assert.Equal(1, task.PassCount);
+        Assert.Equal(1, task.Passes);
+        Assert.Single(fakeTaskService.UpdatedTasks);
+    }
+
+    [Fact]
+    public void CompleteOccurrence_RecurringTask_ResetsIntervalAndClearsPasses()
+    {
+        // Arrange
+        var fakeTaskService = new FakeTaskService();
+        var serviceWithTaskService = new OccurrenceService(fakeTaskService);
+        var initialStart = new DateTime(2026, 9, 21, 8, 0, 0, DateTimeKind.Utc);
+        var task = new ListitTask("Recurring Task", TaskType.Recurring, TimeSpan.FromDays(1), startTime: initialStart, passes: 3);
+        var scheduledAt = initialStart.AddDays(4);
+        var occ = new TaskOccurrence(task.Id, scheduledAt);
+
+        // Act
+        serviceWithTaskService.CompleteOccurrence(occ, task);
+
+        // Assert
+        Assert.Equal(OccurrenceStatus.Completed, occ.Status);
+        Assert.Equal(0, task.Passes);
+        Assert.Equal(0, task.PassCount);
+        Assert.Equal(scheduledAt, task.StartTime);
+        Assert.Equal(1, task.CurrentCompletions);
+        Assert.Single(fakeTaskService.UpdatedTasks);
+        Assert.Empty(fakeTaskService.DeletedTaskIds);
+    }
 }

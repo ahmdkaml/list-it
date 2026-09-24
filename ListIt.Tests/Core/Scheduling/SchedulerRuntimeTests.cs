@@ -324,4 +324,24 @@ public class SchedulerRuntimeTests : IDisposable
         var emitted2 = await runtime.EvaluateCycleAsync();
         Assert.Equal(1, emitted2);
     }
+
+    [Fact]
+    public void MarkOccurrenceMissed_IncrementsTaskPassCount_AndPersistsUpdate()
+    {
+        // Arrange
+        var task = _taskService.CreateTask("Miss Test", TaskType.Recurring, TimeSpan.FromHours(1), startTime: _baseTime);
+        Assert.Equal(0, task.PassCount);
+
+        var evals = _schedulingRuntime.EvaluateNow();
+        var evalOcc = evals.First();
+
+        // Act
+        _schedulingRuntime.MarkOccurrenceMissed(evalOcc.Occurrence);
+
+        // Assert
+        var updatedTask = _taskService.GetTask(task.Id);
+        Assert.NotNull(updatedTask);
+        Assert.Equal(1, updatedTask.PassCount);
+        Assert.Equal(1, updatedTask.Passes);
+    }
 }

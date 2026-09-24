@@ -194,4 +194,58 @@ public class ListitTaskTests
         Assert.Equal("New Title", task.Title);
         Assert.Equal("New Desc", task.Description);
     }
+
+    [Fact]
+    public void PassCount_ReturnsSameValueAsPasses()
+    {
+        var task = new ListitTask("Test");
+        Assert.Equal(0, task.PassCount);
+        task.RecordPass();
+        Assert.Equal(1, task.PassCount);
+        Assert.Equal(task.Passes, task.PassCount);
+    }
+
+    [Fact]
+    public void CheckAndAdvancePasses_AdvancesPasses_WhenIntervalsElapsed()
+    {
+        var startTime = new DateTime(2026, 9, 24, 10, 0, 0, DateTimeKind.Utc);
+        var interval = TimeSpan.FromHours(1);
+        var task = new ListitTask("Hourly Task", startTime: startTime, interval: interval);
+
+        // Before deadline: 10:30 < 11:00
+        Assert.False(task.CheckAndAdvancePasses(startTime.AddMinutes(30)));
+        Assert.Equal(0, task.Passes);
+
+        // Exactly at deadline: 11:00
+        Assert.True(task.CheckAndAdvancePasses(startTime.AddHours(1)));
+        Assert.Equal(1, task.Passes);
+        Assert.Equal(startTime.AddHours(2), task.GetNextDeadlineUtc());
+
+        // Calling again at same time should not advance
+        Assert.False(task.CheckAndAdvancePasses(startTime.AddHours(1)));
+        Assert.Equal(1, task.Passes);
+
+        // Multiple intervals jump: jump to 13:15 (3 hours 15m elapsed from start)
+        Assert.True(task.CheckAndAdvancePasses(startTime.AddHours(3).AddMinutes(15)));
+        Assert.Equal(3, task.Passes);
+        Assert.Equal(startTime.AddHours(4), task.GetNextDeadlineUtc());
+    }
+
+    [Fact]
+    public void ResetInterval_SetsNewStartTime_AndResetsPasses()
+    {
+        var startTime = new DateTime(2026, 9, 24, 10, 0, 0, DateTimeKind.Utc);
+        var task = new ListitTask("Task", startTime: startTime, interval: TimeSpan.FromHours(2));
+        task.RecordPass();
+        task.RecordPass();
+        Assert.Equal(2, task.Passes);
+
+        var completionTime = new DateTime(2026, 9, 24, 15, 0, 0, DateTimeKind.Utc);
+        task.ResetInterval(completionTime);
+
+        Assert.Equal(0, task.Passes);
+        Assert.Equal(0, task.PassCount);
+        Assert.Equal(completionTime, task.StartTime);
+        Assert.Equal(completionTime.AddHours(2), task.GetNextDeadlineUtc());
+    }
 }
