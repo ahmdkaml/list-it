@@ -19,6 +19,7 @@ public class ListitTask
     public int RequiredCompletions { get; private set; }
     public int CurrentCompletions { get; private set; }
     public int Passes { get; private set; }
+    public int PassCount => Passes;
 
     public ListitTask(
         string title,
@@ -180,6 +181,46 @@ public class ListitTask
     public void ResetPasses()
     {
         Passes = 0;
+    }
+
+    /// <summary>
+    /// Resets the interval anchor, starting the countdown anew from the specified time (or UtcNow) and resetting active passes to 0.
+    /// </summary>
+    public void ResetInterval(DateTime? newStartTime = null)
+    {
+        var anchor = newStartTime ?? DateTime.UtcNow;
+        StartTime = anchor.Kind == DateTimeKind.Unspecified
+            ? DateTime.SpecifyKind(anchor, DateTimeKind.Utc)
+            : anchor.ToUniversalTime();
+        Passes = 0;
+    }
+
+    /// <summary>
+    /// Evaluates if unfulfilled interval deadlines have elapsed against the evaluated current time.
+    /// If unfulfilled deadlines have elapsed, advances Passes by the number of elapsed intervals and returns true.
+    /// </summary>
+    public bool CheckAndAdvancePasses(DateTime currentTime)
+    {
+        if (Interval <= TimeSpan.Zero)
+        {
+            return false;
+        }
+
+        var nextDeadline = GetNextDeadlineUtc();
+        if (currentTime < nextDeadline)
+        {
+            return false;
+        }
+
+        var elapsedTicks = (currentTime - StartTime).Ticks;
+        var totalIntervalsElapsed = (int)(elapsedTicks / Interval.Ticks);
+        if (totalIntervalsElapsed > Passes)
+        {
+            Passes = totalIntervalsElapsed;
+            return true;
+        }
+
+        return false;
     }
 
     public DateTime GetNextDeadlineUtc()

@@ -19,6 +19,8 @@ public class TaskItemViewModel : ViewModelBase
     public int Urgency => _task.Urgency;
     public bool BypassPrioritySuppression => _task.BypassPrioritySuppression;
     public TaskType Type => _task.Type;
+    public int Passes => _task.Passes;
+    public int PassCount => _task.PassCount;
 
     private ListIt.Core.Scheduling.SchedulingState? _schedulingState;
     public ListIt.Core.Scheduling.SchedulingState? SchedulingState
@@ -90,6 +92,16 @@ public class TaskItemViewModel : ViewModelBase
     }
 
     public ListitTask Task => _task;
+
+    public void Refresh()
+    {
+        OnPropertyChanged(nameof(Passes));
+        OnPropertyChanged(nameof(PassCount));
+        OnPropertyChanged(nameof(DetailsDisplay));
+        OnPropertyChanged(nameof(Title));
+        OnPropertyChanged(nameof(Description));
+        OnPropertyChanged(nameof(Urgency));
+    }
 
     private static string FormatInterval(TimeSpan interval)
     {

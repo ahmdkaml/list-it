@@ -216,7 +216,8 @@ public class SchedulingRuntime : ISchedulingRuntime
         if (occurrence == null) throw new ArgumentNullException(nameof(occurrence));
         lock (_lock)
         {
-            _occurrenceService.MarkOccurrenceMissed(occurrence);
+            var task = _taskService.GetTask(occurrence.TaskId);
+            _occurrenceService.MarkOccurrenceMissed(occurrence, task);
             EvaluateNow();
         }
     }

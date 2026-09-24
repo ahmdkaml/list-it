@@ -288,6 +288,8 @@ public class MainViewModel : ViewModelBase
                     taskItem.SchedulingState = null;
                     taskItem.HasPendingOccurrence = false;
                 }
+
+                taskItem.Refresh();
             }
 
             OnPropertyChanged(nameof(CanWorkSelectedTask));
