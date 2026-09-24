@@ -18,6 +18,7 @@ public class WindowsNotificationPresenter : INotificationPresenter
     private readonly Action<NotificationPresentationRequest>? _onDisplayRequested;
     private readonly double _lifetimeSeconds;
     private readonly INotificationActionHandler? _actionHandler;
+    private readonly IWindowsToastNotifier? _toastNotifier;
     private readonly List<NotificationPresentationRequest> _activeRequests = new();
     private readonly List<NotificationWindow> _activeWindows = new();
     private readonly object _lock = new();
@@ -44,11 +45,14 @@ public class WindowsNotificationPresenter : INotificationPresenter
         }
     }
 
+    public IWindowsToastNotifier? ToastNotifier => _toastNotifier;
+
     public WindowsNotificationPresenter(
         Action<Action>? uiDispatcher = null,
         Action<NotificationPresentationRequest>? onDisplayRequested = null,
         double lifetimeSeconds = NotificationWindow.DefaultLifetimeSeconds,
-        INotificationActionHandler? actionHandler = null)
+        INotificationActionHandler? actionHandler = null,
+        IWindowsToastNotifier? toastNotifier = null)
     {
         _uiDispatcher = uiDispatcher ?? (action =>
         {
@@ -65,6 +69,7 @@ public class WindowsNotificationPresenter : INotificationPresenter
         _onDisplayRequested = onDisplayRequested;
         _lifetimeSeconds = lifetimeSeconds;
         _actionHandler = actionHandler;
+        _toastNotifier = toastNotifier;
     }
 
     public void Present(NotificationDecision decision)
@@ -80,6 +85,18 @@ public class WindowsNotificationPresenter : INotificationPresenter
         try
         {
             var request = NotificationPresentationRequest.FromDecision(decision);
+
+            if (_toastNotifier != null)
+            {
+                try
+                {
+                    _toastNotifier.ShowToast(request);
+                }
+                catch (Exception ex)
+                {
+                    Trace.TraceError($"Failed to display native toast notification for Task {request.TaskId}: {ex}");
+                }
+            }
 
             _uiDispatcher(() =>
             {
@@ -119,7 +136,11 @@ public class WindowsNotificationPresenter : INotificationPresenter
 
     private void DisplayWindow(NotificationPresentationRequest request)
     {
-        var viewModel = new NotificationViewModel(request, _actionHandler);
+        var effectiveActionHandler = (_toastNotifier != null && _actionHandler != null)
+            ? new ActionHandlerToastDecorator(_actionHandler, _toastNotifier)
+            : _actionHandler;
+
+        var viewModel = new NotificationViewModel(request, effectiveActionHandler);
         var window = new NotificationWindow(viewModel, _lifetimeSeconds);
 
         lock (_lock)
@@ -168,6 +189,28 @@ public class WindowsNotificationPresenter : INotificationPresenter
                 win.Left = pos.X;
                 win.Top = pos.Y;
             }
+        }
+    }
+
+    private class ActionHandlerToastDecorator : INotificationActionHandler
+    {
+        private readonly INotificationActionHandler _innerHandler;
+        private readonly IWindowsToastNotifier _toastNotifier;
+
+        public ActionHandlerToastDecorator(INotificationActionHandler innerHandler, IWindowsToastNotifier toastNotifier)
+        {
+            _innerHandler = innerHandler ?? throw new ArgumentNullException(nameof(innerHandler));
+            _toastNotifier = toastNotifier ?? throw new ArgumentNullException(nameof(toastNotifier));
+        }
+
+        public NotificationActionResult Handle(NotificationActionContext context)
+        {
+            var result = _innerHandler.Handle(context);
+            if (context.Action == NotificationAction.Done || context.Action == NotificationAction.Dismiss)
+            {
+                _toastNotifier.RemoveToast(context.OccurrenceId.ToString());
+            }
+            return result;
         }
     }
 }

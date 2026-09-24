@@ -195,4 +195,81 @@ public class NotificationPresenterTests
         Assert.NotNull(captured);
         Assert.Equal("Important Project Task", captured!.TaskTitle);
     }
+
+    private class FakeToastNotifier : IWindowsToastNotifier
+    {
+        public NotificationPresentationRequest? LastRequest { get; private set; }
+        public string? LastRemovedTag { get; private set; }
+        public bool ThrowOnShow { get; set; }
+
+        public event Action<string>? ToastActivated { add { } remove { } }
+
+        public void ShowToast(NotificationPresentationRequest request)
+        {
+            if (ThrowOnShow) throw new InvalidOperationException("Simulated toast failure");
+            LastRequest = request;
+        }
+
+        public void RemoveToast(string tag, string? group = null)
+        {
+            LastRemovedTag = tag;
+        }
+
+        public void ClearToasts() { }
+        public void Dispose() { }
+    }
+
+    [Fact]
+    public void Present_WithToastNotifier_CallsShowToast()
+    {
+        var fakeNotifier = new FakeToastNotifier();
+        var presenter = new WindowsNotificationPresenter(
+            uiDispatcher: action => action(),
+            onDisplayRequested: _ => { },
+            toastNotifier: fakeNotifier);
+
+        var taskId = Guid.NewGuid();
+        var occId = Guid.NewGuid();
+        var decision = NotificationDecision.Notify(
+            taskId: taskId,
+            occurrenceId: occId,
+            urgency: 4,
+            skipCount: 1,
+            elapsed: TimeSpan.Zero,
+            remaining: TimeSpan.Zero,
+            visualCategory: NotificationVisualCategory.High,
+            opacity: 0.9);
+
+        presenter.Present(decision);
+
+        Assert.NotNull(fakeNotifier.LastRequest);
+        Assert.Equal(taskId, fakeNotifier.LastRequest!.TaskId);
+        Assert.Equal(occId, fakeNotifier.LastRequest.OccurrenceId);
+    }
+
+    [Fact]
+    public void Present_ToastNotifierThrows_DoesNotCrashPresentationAndStillDisplaysWindow()
+    {
+        var fakeNotifier = new FakeToastNotifier { ThrowOnShow = true };
+        bool windowDisplayed = false;
+        var presenter = new WindowsNotificationPresenter(
+            uiDispatcher: action => action(),
+            onDisplayRequested: _ => windowDisplayed = true,
+            toastNotifier: fakeNotifier);
+
+        var decision = NotificationDecision.Notify(
+            taskId: Guid.NewGuid(),
+            occurrenceId: Guid.NewGuid(),
+            urgency: 4,
+            skipCount: 0,
+            elapsed: TimeSpan.Zero,
+            remaining: TimeSpan.Zero,
+            visualCategory: NotificationVisualCategory.High,
+            opacity: 0.8);
+
+        var ex = Record.Exception(() => presenter.Present(decision));
+
+        Assert.Null(ex);
+        Assert.True(windowDisplayed);
+    }
 }
