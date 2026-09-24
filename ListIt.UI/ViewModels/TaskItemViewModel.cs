@@ -22,6 +22,13 @@ public class TaskItemViewModel : ViewModelBase
     public int Passes => _task.Passes;
     public int PassCount => _task.PassCount;
 
+    private double _score;
+    public double Score
+    {
+        get => _score;
+        set => SetProperty(ref _score, value);
+    }
+
     private ListIt.Core.Scheduling.SchedulingState? _schedulingState;
     public ListIt.Core.Scheduling.SchedulingState? SchedulingState
     {
