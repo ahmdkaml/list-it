@@ -356,4 +356,18 @@ public class MainViewModelTests
         Assert.NotNull(vm.SelectedTask);
         Assert.Equal("Low Urgency", vm.SelectedTask.Title);
     }
+
+    [Fact]
+    public void OpenDiagnosticsConsoleCommand_RaisesRequestOpenDiagnosticsConsole()
+    {
+        var taskService = new FakeTaskService();
+        var vm = new MainViewModel(taskService);
+
+        bool eventRaised = false;
+        vm.RequestOpenDiagnosticsConsole += () => eventRaised = true;
+
+        vm.OpenDiagnosticsConsoleCommand.Execute(null);
+
+        Assert.True(eventRaised);
+    }
 }

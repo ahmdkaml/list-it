@@ -61,6 +61,9 @@ public class MainViewModel : ViewModelBase
     public ICommand RefreshTasksCommand { get; }
     public ICommand WorkTaskCommand { get; }
     public ICommand DoneTaskCommand { get; }
+    public ICommand OpenDiagnosticsConsoleCommand { get; }
+
+    public event Action? RequestOpenDiagnosticsConsole;
 
     /// <summary>
     /// Delegate for confirming deletion. Can be overridden in unit tests to avoid MessageBox prompts.
@@ -89,6 +92,8 @@ public class MainViewModel : ViewModelBase
         DoneTaskCommand = new RelayCommand(
             param => CompleteTask(param as TaskItemViewModel),
             param => param is TaskItemViewModel item ? (item.HasPendingOccurrence || (_schedulingRuntime == null && item.Task.Type == TaskType.Finite)) : CanCompleteSelectedTask);
+
+        OpenDiagnosticsConsoleCommand = new RelayCommand(_ => RequestOpenDiagnosticsConsole?.Invoke());
 
         Editor.TaskSaved += Editor_TaskSaved;
         Editor.Cancelled += Editor_Cancelled;

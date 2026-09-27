@@ -18,6 +18,9 @@ namespace ListIt;
 public partial class MainWindow : Window
 {
     private readonly DesktopShellBox _shellBox;
+    private readonly ITaskService _taskService;
+    private readonly ISchedulingRuntime _schedulingRuntime;
+    private DiagnosticsConsoleWindow? _diagnosticsWindow;
     private bool _isExplicitShutdown;
 
     public MainWindow() : this(new DesktopShellBox())
@@ -32,17 +35,36 @@ public partial class MainWindow : Window
     public MainWindow(DesktopShellBox shellBox, ITaskService taskService, ISchedulingRuntime schedulingRuntime)
     {
         _shellBox = shellBox ?? throw new ArgumentNullException(nameof(shellBox));
-        if (taskService == null) throw new ArgumentNullException(nameof(taskService));
-        if (schedulingRuntime == null) throw new ArgumentNullException(nameof(schedulingRuntime));
+        _taskService = taskService ?? throw new ArgumentNullException(nameof(taskService));
+        _schedulingRuntime = schedulingRuntime ?? throw new ArgumentNullException(nameof(schedulingRuntime));
 
         InitializeComponent();
 
         var mainViewModel = new MainViewModel(taskService, schedulingRuntime);
+        mainViewModel.RequestOpenDiagnosticsConsole += OpenDiagnosticsConsole;
         DataContext = mainViewModel;
 
         SourceInitialized += MainWindow_SourceInitialized;
         Loaded += MainWindow_Loaded;
         Closing += MainWindow_Closing;
+    }
+
+    private void OpenDiagnosticsConsole()
+    {
+        try
+        {
+            if (_diagnosticsWindow == null)
+            {
+                var diagVm = new DiagnosticsConsoleViewModel(_taskService, _schedulingRuntime);
+                _diagnosticsWindow = new DiagnosticsConsoleWindow(diagVm);
+            }
+
+            _diagnosticsWindow.ShowOrActivate();
+        }
+        catch (Exception ex)
+        {
+            MessageBox.Show($"Failed to open diagnostics console: {ex.Message}", "ListIt Diagnostics Console", MessageBoxButton.OK, MessageBoxImage.Error);
+        }
     }
 
     private static ITaskService CreateDefaultTaskService(out ISchedulingRuntime schedulingRuntime)
@@ -102,6 +124,8 @@ public partial class MainWindow : Window
     public void ShutdownAndClose()
     {
         _isExplicitShutdown = true;
+        _diagnosticsWindow?.DisposeWindow();
+        _diagnosticsWindow = null;
         Close();
     }
 
