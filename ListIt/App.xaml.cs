@@ -40,6 +40,12 @@ public partial class App : Application
 
         ShutdownMode = ShutdownMode.OnExplicitShutdown;
 
+        DispatcherUnhandledException += (s, args) =>
+        {
+            MessageBox.Show($"An unexpected error occurred: {args.Exception.Message}", "ListIt Error", MessageBoxButton.OK, MessageBoxImage.Error);
+            args.Handled = true;
+        };
+
         // 2. Shell Configuration & Windows Startup Registration
         _startupManager = new WindowsStartupManager();
         if (_shellOptions.StartWithWindows && !_startupManager.IsEnabled())
