@@ -21,13 +21,24 @@ public class TaskItemViewModel : ViewModelBase
     public TaskType Type => _task.Type;
     public int Passes => _task.Passes;
     public int PassCount => _task.PassCount;
+    public bool HasPasses => PassCount > 0;
+    public bool HasMultiplePasses => PassCount > 1;
+    public string PassesDisplay => $"Passes: {PassCount}";
 
     private double _score;
     public double Score
     {
         get => _score;
-        set => SetProperty(ref _score, value);
+        set
+        {
+            if (SetProperty(ref _score, value))
+            {
+                OnPropertyChanged(nameof(ScoreDisplay));
+            }
+        }
     }
+
+    public string ScoreDisplay => $"Score: {Score:F0}";
 
     private ListIt.Core.Scheduling.SchedulingState? _schedulingState;
     public ListIt.Core.Scheduling.SchedulingState? SchedulingState
@@ -104,6 +115,10 @@ public class TaskItemViewModel : ViewModelBase
     {
         OnPropertyChanged(nameof(Passes));
         OnPropertyChanged(nameof(PassCount));
+        OnPropertyChanged(nameof(HasPasses));
+        OnPropertyChanged(nameof(HasMultiplePasses));
+        OnPropertyChanged(nameof(PassesDisplay));
+        OnPropertyChanged(nameof(ScoreDisplay));
         OnPropertyChanged(nameof(DetailsDisplay));
         OnPropertyChanged(nameof(Title));
         OnPropertyChanged(nameof(Description));

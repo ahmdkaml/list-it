@@ -4,6 +4,7 @@
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
              xmlns:models="clr-namespace:ListIt.Core.Models;assembly=ListIt.Core"
+             xmlns:vm="clr-namespace:ListIt.UI.ViewModels"
              mc:Ignorable="d" 
              d:DesignHeight="420" d:DesignWidth="280"
              Background="#18181B">
@@ -64,8 +65,24 @@
             </ComboBox>
 
             <!-- Interval -->
-            <TextBlock Text="Interval (e.g. 1d, 4h, 30m - defaults to 1d)" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />
+            <TextBlock Text="Interval" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />
+            <ComboBox SelectedValue="{Binding SelectedIntervalPreset}"
+                      SelectedValuePath="Tag"
+                      Background="#27272A"
+                      Foreground="#FFFFFF"
+                      BorderBrush="#3F3F46"
+                      Margin="0,0,0,4">
+                <ComboBox.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#27272A" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFFFFF" />
+                </ComboBox.Resources>
+                <ComboBoxItem Content="1 Day (24 hours)" Tag="{x:Static vm:IntervalPreset.Day}" />
+                <ComboBoxItem Content="1 Week (7 days)" Tag="{x:Static vm:IntervalPreset.Week}" />
+                <ComboBoxItem Content="1 Month (30 days)" Tag="{x:Static vm:IntervalPreset.Month}" />
+                <ComboBoxItem Content="Custom Interval..." Tag="{x:Static vm:IntervalPreset.Custom}" />
+            </ComboBox>
             <TextBox Text="{Binding IntervalString, UpdateSourceTrigger=PropertyChanged}"
+                     Visibility="{Binding IsCustomInterval, Converter={StaticResource BoolToVis}}"
                      Background="#27272A"
                      Foreground="#FFFFFF"
                      CaretBrush="#FFFFFF"
@@ -74,8 +91,22 @@
                      Margin="0,0,0,8" />
 
             <!-- Start Time -->
-            <TextBlock Text="Start Time (Optional - e.g. 09:00 or leave blank for now)" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />
+            <TextBlock Text="Start Time" Foreground="#A1A1AA" FontSize="11" Margin="0,0,0,2" />
+            <ComboBox SelectedValue="{Binding SelectedStartTimeMode}"
+                      SelectedValuePath="Tag"
+                      Background="#27272A"
+                      Foreground="#FFFFFF"
+                      BorderBrush="#3F3F46"
+                      Margin="0,0,0,4">
+                <ComboBox.Resources>
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowBrushKey}" Color="#27272A" />
+                    <SolidColorBrush x:Key="{x:Static SystemColors.WindowTextBrushKey}" Color="#FFFFFF" />
+                </ComboBox.Resources>
+                <ComboBoxItem Content="Now (Assignment Time)" Tag="{x:Static vm:StartTimeMode.Now}" />
+                <ComboBoxItem Content="Specific Time / Hour..." Tag="{x:Static vm:StartTimeMode.SpecificHour}" />
+            </ComboBox>
             <TextBox Text="{Binding StartTimeString, UpdateSourceTrigger=PropertyChanged}"
+                     Visibility="{Binding IsSpecificStartTime, Converter={StaticResource BoolToVis}}"
                      Background="#27272A"
                      Foreground="#FFFFFF"
                      CaretBrush="#FFFFFF"

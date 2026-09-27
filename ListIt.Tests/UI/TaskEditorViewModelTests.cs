@@ -218,4 +218,66 @@ public class TaskEditorViewModelTests
         Assert.NotNull(savedTask);
         Assert.True(savedTask.BypassPrioritySuppression);
     }
+
+    [Fact]
+    public void SelectedIntervalPreset_ChangesIntervalString_AndCustomFlag()
+    {
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+
+        Assert.Equal(IntervalPreset.Day, vm.SelectedIntervalPreset);
+        Assert.Equal("1d", vm.IntervalString);
+        Assert.False(vm.IsCustomInterval);
+
+        vm.SelectedIntervalPreset = IntervalPreset.Week;
+        Assert.Equal("1w", vm.IntervalString);
+        Assert.False(vm.IsCustomInterval);
+
+        vm.SelectedIntervalPreset = IntervalPreset.Month;
+        Assert.Equal("30d", vm.IntervalString);
+        Assert.False(vm.IsCustomInterval);
+
+        vm.SelectedIntervalPreset = IntervalPreset.Custom;
+        Assert.True(vm.IsCustomInterval);
+    }
+
+    [Fact]
+    public void SelectedStartTimeMode_ChangesStartTimeString_AndSpecificFlag()
+    {
+        var vm = new TaskEditorViewModel();
+        vm.LoadForCreate();
+
+        Assert.Equal(StartTimeMode.Now, vm.SelectedStartTimeMode);
+        Assert.Equal("Now", vm.StartTimeString);
+        Assert.False(vm.IsSpecificStartTime);
+
+        vm.SelectedStartTimeMode = StartTimeMode.SpecificHour;
+        Assert.True(vm.IsSpecificStartTime);
+        Assert.False(string.IsNullOrWhiteSpace(vm.StartTimeString));
+    }
+
+    [Fact]
+    public void TryParseInterval_SupportsWeeksAndMonths()
+    {
+        Assert.True(TaskEditorViewModel.TryParseInterval("1w", out var week1));
+        Assert.Equal(TimeSpan.FromDays(7), week1);
+
+        Assert.True(TaskEditorViewModel.TryParseInterval("2 weeks", out var week2));
+        Assert.Equal(TimeSpan.FromDays(14), week2);
+
+        Assert.True(TaskEditorViewModel.TryParseInterval("1 month", out var month1));
+        Assert.Equal(TimeSpan.FromDays(30), month1);
+    }
+
+    [Fact]
+    public void LoadForEdit_SetsIntervalPresetCorrectly()
+    {
+        var taskWeek = new ListitTask("Weekly Task", TaskType.Recurring, TimeSpan.FromDays(7));
+        var vm = new TaskEditorViewModel();
+        vm.LoadForEdit(taskWeek);
+
+        Assert.Equal(IntervalPreset.Week, vm.SelectedIntervalPreset);
+        Assert.Equal("1w", vm.IntervalString);
+        Assert.Equal(StartTimeMode.SpecificHour, vm.SelectedStartTimeMode);
+    }
 }
