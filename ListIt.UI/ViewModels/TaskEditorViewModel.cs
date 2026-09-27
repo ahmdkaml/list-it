@@ -5,6 +5,20 @@ using ListIt.UI.ViewModels.Common;
 
 namespace ListIt.UI.ViewModels;
 
+public enum IntervalPreset
+{
+    Day,
+    Week,
+    Month,
+    Custom
+}
+
+public enum StartTimeMode
+{
+    Now,
+    SpecificHour
+}
+
 public class TaskEditorViewModel : ViewModelBase
 {
     private bool _isEditing;
@@ -18,6 +32,8 @@ public class TaskEditorViewModel : ViewModelBase
     private int _urgency = 1;
     private string _startTimeString = string.Empty;
     private string _intervalString = "1d";
+    private IntervalPreset _selectedIntervalPreset = IntervalPreset.Day;
+    private StartTimeMode _selectedStartTimeMode = StartTimeMode.Now;
     private int _requiredCompletions = 1;
     private bool _bypassPrioritySuppression;
     private string? _errorMessage;
@@ -93,6 +109,54 @@ public class TaskEditorViewModel : ViewModelBase
         set => SetProperty(ref _intervalString, value);
     }
 
+    public IntervalPreset SelectedIntervalPreset
+    {
+        get => _selectedIntervalPreset;
+        set
+        {
+            if (SetProperty(ref _selectedIntervalPreset, value))
+            {
+                OnPropertyChanged(nameof(IsCustomInterval));
+                switch (value)
+                {
+                    case IntervalPreset.Day:
+                        IntervalString = "1d";
+                        break;
+                    case IntervalPreset.Week:
+                        IntervalString = "1w";
+                        break;
+                    case IntervalPreset.Month:
+                        IntervalString = "30d";
+                        break;
+                }
+            }
+        }
+    }
+
+    public bool IsCustomInterval => SelectedIntervalPreset == IntervalPreset.Custom;
+
+    public StartTimeMode SelectedStartTimeMode
+    {
+        get => _selectedStartTimeMode;
+        set
+        {
+            if (SetProperty(ref _selectedStartTimeMode, value))
+            {
+                OnPropertyChanged(nameof(IsSpecificStartTime));
+                if (value == StartTimeMode.Now)
+                {
+                    StartTimeString = "Now";
+                }
+                else if (string.IsNullOrWhiteSpace(StartTimeString) || StartTimeString.Equals("now", StringComparison.OrdinalIgnoreCase))
+                {
+                    StartTimeString = DateTime.Now.ToString("HH:mm");
+                }
+            }
+        }
+    }
+
+    public bool IsSpecificStartTime => SelectedStartTimeMode == StartTimeMode.SpecificHour;
+
     public int RequiredCompletions
     {
         get => _requiredCompletions;
@@ -130,8 +194,10 @@ public class TaskEditorViewModel : ViewModelBase
         Title = string.Empty;
         Description = string.Empty;
         Urgency = 1;
-        StartTimeString = string.Empty;
+        SelectedIntervalPreset = IntervalPreset.Day;
         IntervalString = "1d";
+        SelectedStartTimeMode = StartTimeMode.Now;
+        StartTimeString = "Now";
         RequiredCompletions = 1;
         BypassPrioritySuppression = false;
         ErrorMessage = null;
@@ -151,8 +217,27 @@ public class TaskEditorViewModel : ViewModelBase
         Description = task.Description;
         Urgency = task.Urgency;
         BypassPrioritySuppression = task.BypassPrioritySuppression;
-        StartTimeString = task.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
+
+        if (task.Interval == TimeSpan.FromDays(1))
+        {
+            SelectedIntervalPreset = IntervalPreset.Day;
+        }
+        else if (task.Interval == TimeSpan.FromDays(7))
+        {
+            SelectedIntervalPreset = IntervalPreset.Week;
+        }
+        else if (task.Interval == TimeSpan.FromDays(30))
+        {
+            SelectedIntervalPreset = IntervalPreset.Month;
+        }
+        else
+        {
+            SelectedIntervalPreset = IntervalPreset.Custom;
+        }
+
         IntervalString = FormatInterval(task.Interval);
+        SelectedStartTimeMode = StartTimeMode.SpecificHour;
+        StartTimeString = task.StartTime.ToLocalTime().ToString("yyyy-MM-dd HH:mm");
         RequiredCompletions = task.RequiredCompletions;
         ErrorMessage = null;
     }
@@ -251,7 +336,25 @@ public class TaskEditorViewModel : ViewModelBase
             return true;
         }
 
-        if (trimmed.EndsWith("days") || trimmed.EndsWith("day") || trimmed.EndsWith("d"))
+        if (trimmed.EndsWith("weeks") || trimmed.EndsWith("week") || trimmed.EndsWith("w"))
+        {
+            var numStr = trimmed.Replace("weeks", "").Replace("week", "").Replace("w", "").Trim();
+            if (double.TryParse(numStr, out var weeks) && weeks > 0)
+            {
+                interval = TimeSpan.FromDays(weeks * 7);
+                return true;
+            }
+        }
+        else if (trimmed.EndsWith("months") || trimmed.EndsWith("month"))
+        {
+            var numStr = trimmed.Replace("months", "").Replace("month", "").Trim();
+            if (double.TryParse(numStr, out var months) && months > 0)
+            {
+                interval = TimeSpan.FromDays(months * 30);
+                return true;
+            }
+        }
+        else if (trimmed.EndsWith("days") || trimmed.EndsWith("day") || trimmed.EndsWith("d"))
         {
             var numStr = trimmed.TrimEnd('s').TrimEnd('y').TrimEnd('a').TrimEnd('d').Trim();
             if (double.TryParse(numStr, out var days) && days > 0)
@@ -316,6 +419,14 @@ public class TaskEditorViewModel : ViewModelBase
 
     private static string FormatInterval(TimeSpan interval)
     {
+        if (interval.TotalDays == 7)
+        {
+            return "1w";
+        }
+        if (interval.TotalDays == 30)
+        {
+            return "30d";
+        }
         if (interval.TotalDays >= 1 && interval.TotalHours % 24 == 0)
         {
             return $"{(int)interval.TotalDays}d";
